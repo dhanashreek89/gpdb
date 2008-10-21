@@ -330,6 +330,10 @@ exprLocation(Node *expr)
 		case T_CommonTableExpr:
 			loc = ((CommonTableExpr *) expr)->location;
 			break;
+		case T_PlaceHolderVar:
+ 			/* just use argument's location */
+ 			loc = exprLocation((Node *) ((PlaceHolderVar *) expr)->phexpr);
+ 			break;
 		default:
 			/* for any other node type it's just unknown... */
 			loc = -1;

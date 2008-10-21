@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/tlist.c,v 1.78 2008/01/01 19:45:50 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/tlist.c,v 1.83 2008/10/21 20:42:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -133,7 +133,7 @@ tlist_member_ignore_relabel(Node *node, List *targetlist)
 List *
 flatten_tlist(List *tlist)
 {
-	List	   *vlist = pull_var_clause((Node *) tlist, false);
+	List	   *vlist = pull_var_clause((Node *) tlist, true);
 	List	   *new_tlist;
 
 	new_tlist = add_to_flat_tlist(NIL, vlist, false /* resjunk */);
@@ -146,7 +146,7 @@ flatten_tlist(List *tlist)
  *		Add more expressions to a flattened tlist (if they're not already in it)
  *
  * 'tlist' is the flattened tlist
- * 'exprs' is a list of expression nodes
+ * 'vars' is a list of Var and/or PlaceHolderVar nodes
  *
  * Returns the extended tlist.
  */

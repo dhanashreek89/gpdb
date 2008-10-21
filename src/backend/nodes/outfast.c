@@ -1442,6 +1442,9 @@ _outNode(StringInfo str, void *obj)
 			case T_CurrentOfExpr:
 				_outCurrentOfExpr(str, obj);
 				break;
+			case T_PlaceHolderVar:
+				_outPlaceHolderVar(str, obj);
+				break;
 			case T_TargetEntry:
 				_outTargetEntry(str, obj);
 				break;

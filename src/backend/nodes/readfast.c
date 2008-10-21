@@ -1586,6 +1586,22 @@ _readAppend(void)
 	READ_DONE();
 }
 
+/*
+ * _readPlaceHolderVar
+ */
+static PlaceHolderVar *
+_readPlaceHolderVar(void)
+{
+	READ_LOCALS(PlaceHolderVar);
+
+	READ_NODE_FIELD(phexpr);
+	READ_BITMAPSET_FIELD(phrels);
+	READ_UINT_FIELD(phid);
+	READ_UINT_FIELD(phlevelsup);
+
+	READ_DONE();
+}
+
 static Sequence *
 _readSequence(void)
 {
@@ -2936,6 +2952,9 @@ readNodeBinary(void)
 				break;
 			case T_OpExpr:
 				return_value = _readOpExpr();
+				break;
+			case T_PlaceHolderVar:
+				return_value = _readPlaceHolderVar();
 				break;
 			case T_DistinctExpr:
 				return_value = _readDistinctExpr();

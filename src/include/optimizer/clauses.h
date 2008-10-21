@@ -129,6 +129,8 @@ extern bool is_builtin_greenplum_hashable_equality_between_same_type(int opno);
 
 extern bool subexpression_match(Expr *expr1, Expr *expr2);
 
+extern Relids adjust_relid_set(Relids relids, Index oldrelid, Index newrelid);
+
 // resolve the join alias varno/varattno information to its base varno/varattno information
 extern Query *flatten_join_alias_var_optimizer(Query *query, int queryLevel);
 

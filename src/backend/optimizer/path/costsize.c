@@ -55,7 +55,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/costsize.c,v 1.198 2008/10/04 21:56:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/costsize.c,v 1.200 2008/10/21 20:42:52 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -69,6 +69,7 @@
 #include "optimizer/clauses.h"
 #include "optimizer/cost.h"
 #include "optimizer/pathnode.h"
+#include "optimizer/placeholder.h"
 #include "optimizer/planmain.h"
 #include "parser/parse_expr.h"
 #include "parser/parsetree.h"
@@ -3193,7 +3194,7 @@ void
 set_rel_width(PlannerInfo *root, RelOptInfo *rel)
 {
 	int32		tuple_width = 0;
-	ListCell   *tllist;
+	ListCell   *lc;
 	Oid			rel_reloid;
 
 	/*
@@ -3205,64 +3206,79 @@ set_rel_width(PlannerInfo *root, RelOptInfo *rel)
 	else
 		rel_reloid = InvalidOid;	/* probably can't happen */
 
-	foreach(tllist, rel->reltargetlist)
+	foreach(lc, rel->reltargetlist)
 	{
-		Var		   *var = (Var *) lfirst(tllist);
-		int			ndx;
-		Oid			var_reloid;
-		int32		item_width;
+		Node	   *node = (Node *) lfirst(lc);
 
-		/* For now, punt on whole-row child Vars */
-		if (!IsA(var, Var))
+		if (IsA(node, Var))
 		{
-			tuple_width += 32;	/* arbitrary */
-			continue;
-		}
+			Var                *var = (Var *) node;
+			int                     ndx;
+			int32           item_width;
+			Oid                     var_reloid;
 
-        /* Virtual column? */
-        if (var->varattno <= FirstLowInvalidHeapAttributeNumber)
-        {
-            CdbRelColumnInfo   *rci = cdb_find_pseudo_column(root, var);
+			/* Virtual column? */
+        		if (var->varattno <= FirstLowInvalidHeapAttributeNumber)
+        		{
+            			CdbRelColumnInfo   *rci = cdb_find_pseudo_column(root, var);
 
-            tuple_width += rci->attr_width;
-            continue;
-        }
+            			tuple_width += rci->attr_width;
+            			continue;
+        		}
 
-		ndx = var->varattno - rel->min_attr;
+			Assert(var->varno == rel->relid);
+			Assert(var->varattno >= rel->min_attr);
+			Assert(var->varattno <= rel->max_attr);
 
-		/*
-		 * The width probably hasn't been cached yet, but may as well check
-		 */
-		if (rel->attr_widths[ndx] > 0)
-		{
-			tuple_width += rel->attr_widths[ndx];
-			continue;
-		}
+			ndx = var->varattno - rel->min_attr;
 
 		if (var->varno == rel->relid)
 			var_reloid = rel_reloid;
 		else
 			var_reloid = getrelid(var->varno, root->parse->rtable);
 
-		if (var_reloid != InvalidOid)
-		{
-			item_width = get_attavgwidth(var_reloid, var->varattno);
-			if (item_width > 0)
+			/*
+			 * The width probably hasn't been cached yet, but may as well check
+			 */
+			if (rel->attr_widths[ndx] > 0)
 			{
-				rel->attr_widths[ndx] = item_width;
-				tuple_width += item_width;
+				tuple_width += rel->attr_widths[ndx];
 				continue;
 			}
-		}
 
-		/*
-		 * Not a plain relation, or can't find statistics for it. Estimate
-		 * using just the type info.
-		 */
-		item_width = get_typavgwidth(var->vartype, var->vartypmod);
-		Assert(item_width > 0);
-		rel->attr_widths[ndx] = item_width;
-		tuple_width += item_width;
+			/* Try to get column width from statistics */
+			if (var_reloid != InvalidOid)
+			{
+				item_width = get_attavgwidth(var_reloid, var->varattno);
+				if (item_width > 0)
+				{
+					rel->attr_widths[ndx] = item_width;
+					tuple_width += item_width;
+					continue;
+				}
+			}
+
+			/*
+			 * Not a plain relation, or can't find statistics for it. Estimate
+			 * using just the type info.
+			 */
+			item_width = get_typavgwidth(var->vartype, var->vartypmod);
+			Assert(item_width > 0);
+			rel->attr_widths[ndx] = item_width;
+			tuple_width += item_width;
+		}
+		else if (IsA(node, PlaceHolderVar))
+		{
+			PlaceHolderVar *phv = (PlaceHolderVar *) node;
+			PlaceHolderInfo *phinfo = find_placeholder_info(root, phv);
+
+			tuple_width += phinfo->ph_width;
+		}
+		else
+		{
+			/* For now, punt on whole-row child Vars */
+			tuple_width += 32;	/* arbitrary */
+		}
 	}
 	Assert(tuple_width >= 0);
 	rel->width = tuple_width;
