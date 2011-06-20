@@ -280,9 +280,7 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 				j->rarg = pull_up_sublinks_jointree_recurse(root,
 															j->rarg,
 															&child_rels);
-				/* Pulled-up ANY/EXISTS quals can use those rels too */
-				child_rels = bms_add_members(child_rels, available_rels);
-				/* ... and any inserted joins get stacked onto j->rarg */
+				/* Any inserted joins get stacked onto j->rarg */
 				j->quals = pull_up_sublinks_qual_recurse(root,
 														 j->quals,
 														 child_rels,
@@ -331,9 +329,7 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 				j->rarg = pull_up_sublinks_jointree_recurse(root,
 															j->rarg,
 															&child_rels);
-				/* Pulled-up ANY/EXISTS quals can use those rels too */
-				child_rels = bms_add_members(child_rels, available_rels);
-				/* ... and any inserted joins get stacked onto j->rarg */
+				/* Any inserted joins get stacked onto j->rarg */
 				j->quals = pull_up_sublinks_qual_recurse(root,
 														 j->quals,
 														 child_rels,
@@ -354,7 +350,6 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 		SubLink    *sublink = (SubLink *) get_notclausearg((Expr *) node);
 		Node	   *arg = (Node *) get_notclausearg((Expr *) node);
 		JoinExpr   *j;
-		Relids		child_rels;
 
 		if (sublink && IsA(sublink, SubLink))
 		{
@@ -365,17 +360,27 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 				if (subst && IsA(subst, JoinExpr))
 				{
 					j = (JoinExpr *) subst;
+					/*
+					 * For the moment, refrain from recursing underneath NOT.
+					 * As in pull_up_sublinks_jointree_recurse, recursing here
+					 * would result in inserting a join underneath an ANTI
+					 * join with which it could not commute, and that could
+					 * easily lead to a worse plan than what we've
+					 * historically generated.
+					 */
+#ifdef NOT_USED
 					/* Yes; recursively process what we pulled up */
+					Relids		child_rels;
+
 					j->rarg = pull_up_sublinks_jointree_recurse(root,
 																j->rarg,
 																&child_rels);
-					/* Pulled-up ANY/EXISTS quals can use those rels too */
-					child_rels = bms_add_members(child_rels, available_rels);
-					/* ... and any inserted joins get stacked onto j->rarg */
+					/* Any inserted joins get stacked onto j->rarg */
 					j->quals = pull_up_sublinks_qual_recurse(root,
 															 j->quals,
 															 child_rels,
 															 &j->rarg);
+#endif
 					/* Now insert the new join node into the join tree */
 					j->larg = *jtlink;
 					*jtlink = (Node *) j;
