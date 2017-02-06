@@ -3042,6 +3042,7 @@ get_attstatsslot_desc(TupleDesc tupdesc, HeapTuple statstuple,
 	Datum		val;
 	bool		isnull;
 	ArrayType  *statarray;
+	Oid			arrayelemtype;
 	int			narrayelem;
 	HeapTuple	typeTuple;
 	Form_pg_type typeForm;
@@ -3075,24 +3076,26 @@ get_attstatsslot_desc(TupleDesc tupdesc, HeapTuple statstuple,
 		 */
 		if (ARR_NDIM(statarray) > 0)
 		{
-			cqContext  *typcqCtx;
 
-			/* Need to get info about the array element type */
-			typcqCtx = caql_beginscan(
-					NULL,
-					cql("SELECT * FROM pg_type "
-						" WHERE oid = :1 ",
-						ObjectIdGetDatum(atttype)));
-
-			typeTuple = caql_getnext(typcqCtx);
+			/*
+			 * Need to get info about the array element type.  We look at the
+			 * actual element type embedded in the array, which might be only
+			 * binary-compatible with the passed-in atttype.  The info we
+			 * extract here should be the same either way, but deconstruct_array
+			 * is picky about having an exact type OID match.
+			 */
+			arrayelemtype = ARR_ELEMTYPE(statarray);
+			typeTuple = SearchSysCache(TYPEOID,
+									   ObjectIdGetDatum(arrayelemtype),
+									   0, 0, 0);
 
 			if (!HeapTupleIsValid(typeTuple))
-				elog(ERROR, "cache lookup failed for type %u", atttype);
+				elog(ERROR, "cache lookup failed for type %u", arrayelemtype);
 			typeForm = (Form_pg_type) GETSTRUCT(typeTuple);
 
 			/* Deconstruct array into Datum elements; NULLs not expected */
 			deconstruct_array(statarray,
-					atttype,
+					arrayelemtype,
 					typeForm->typlen,
 					typeForm->typbyval,
 					typeForm->typalign,
@@ -3112,8 +3115,7 @@ get_attstatsslot_desc(TupleDesc tupdesc, HeapTuple statstuple,
 							typeForm->typlen);
 				}
 			}
-
-			caql_endscan(typcqCtx);
+			ReleaseSysCache(typeTuple);
 		}
 		/*
 		 * Free statarray if it's a detoasted copy.
