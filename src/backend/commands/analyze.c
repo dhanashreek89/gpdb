@@ -1369,12 +1369,24 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 			for (i = 0; i < nattrs; i++)
 			{
 				if (i != 0)
+				{
 					appendStringInfo(&columnStr, ", ");
-				appendStringInfo(&columnStr, "Ta.%s", quote_identifier(NameStr(attrstats[i]->attr->attname)));
+				}
+				appendStringInfo(&columnStr,
+								"(case when pg_column_size(Ta.%s) > %d then NULL else Ta.%s  end) as %s, (case when pg_column_size(Ta.%s) > %d then 2 else 1  end) as ignore_%s",
+								quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								analyze_column_width_threshold,
+								quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								analyze_column_width_threshold,
+								quote_identifier(NameStr(attrstats[i]->attr->attname)));
 			}
 		}
 		else
+		{
 			appendStringInfo(&columnStr, "NULL");
+		}
 
 		/*
 		 * If table is partitioned, we create a sample over all parts.
@@ -1445,24 +1457,46 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 
 		/* Ok, read in the tuples to *rows */
 		MemoryContextSwitchTo(oldcxt);
-		vals = (Datum *) palloc(RelationGetNumberOfAttributes(onerel) * sizeof(Datum));
-		nulls = (bool *) palloc(RelationGetNumberOfAttributes(onerel) * sizeof(bool));
-		for (i = 0; i < RelationGetNumberOfAttributes(onerel); i++)
+		vals = (Datum *) palloc(2 * RelationGetNumberOfAttributes(onerel) * sizeof(Datum));
+		nulls = (bool *) palloc(2 * RelationGetNumberOfAttributes(onerel) * sizeof(bool));
+		for (i = 0; i < 2 * RelationGetNumberOfAttributes(onerel); i++)
 		{
 			vals[i] = (Datum) 0;
 			nulls[i] = true;
 		}
 
 		*rows = (HeapTuple *) palloc(sampleTuples * sizeof(HeapTuple));
+		bool *ignore_column = (bool *)palloc(sizeof(bool)*nattrs);
+
+		for ( i = 0; i < nattrs; i++)
+		{
+			int j;
+			for (j = 0; j < sampleTuples; j++)
+			{
+				int			tupattnum = attrstats[i]->tupattnum;
+
+				HeapTuple	sampletup = SPI_tuptable->vals[j];
+				vals[tupattnum - 1] = heap_getattr(sampletup, (2*(i+1)),
+												   SPI_tuptable->tupdesc,
+												   &nulls[tupattnum - 1]);
+				int something = DatumGetInt32(vals[tupattnum - 1]);
+
+				if(something == 2)
+				{
+					ignore_column[i] = true;
+					break;
+				}
+			}
+		}
+
 		for (i = 0; i < sampleTuples; i++)
 		{
 			HeapTuple	sampletup = SPI_tuptable->vals[i];
 			int			j;
 
-			for (j = 0; j < nattrs; j++)
+			for (j = 0; j < nattrs * 2; j++)
 			{
-				int			tupattnum = attrstats[j]->tupattnum;
-
+				int			tupattnum = attrstats[i]->tupattnum;
 				Assert(tupattnum >= 1 && tupattnum <= RelationGetNumberOfAttributes(onerel));
 
 				vals[tupattnum - 1] = heap_getattr(sampletup, j + 1,
