@@ -1488,15 +1488,15 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 		for ( i = 0; i < nattrs; i++)
 		{
 			ignore_column[i] = false;
-			
+
 			int			tupattnum = attrstats[i]->tupattnum;
-				
+
 			HeapTuple	sampletup = SPI_tuptable->vals[0];
 
 			int something = DatumGetInt32(heap_getattr(sampletup, (nattrs + i + 1),
 													   SPI_tuptable->tupdesc,
 													   &nulls[tupattnum - 1]));
-			
+
 			if(something == 2)
 			{
 				ignore_column[i] = true;
@@ -1551,6 +1551,7 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 			(*rows)[i] = heap_form_tuple(onerel->rd_att, vals, nulls);
 		}
 
+		int tcnt = 0;
 		for ( i = 0; i < nattrs; i++)
 		{
 			if (ignore_column[i])
@@ -1559,6 +1560,18 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 				pfree(attrstats[i]);
 				attrstats[i] = NULL;
 			}
+			else
+			{
+				attrstats[tcnt] = attrstats[i];
+				tcnt++;
+			}
+		}
+
+		for (; tcnt < nattrs; tcnt++)
+		{
+			pfree(attrstats[i]->attr);
+			pfree(attrstats[i]);
+			attrstats[tcnt] = NULL;
 		}
 
 		/**
