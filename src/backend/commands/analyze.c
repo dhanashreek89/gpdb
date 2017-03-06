@@ -1311,6 +1311,7 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 {
 	StringInfoData str;
 	StringInfoData columnStr;
+	StringInfoData orderByStr;
 	StringInfoData thresholdStr;
 	int			i;
 	const char *schemaName = NULL;
@@ -1363,24 +1364,37 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 		tableName = RelationGetRelationName(onerel);
 
 		initStringInfo(&columnStr);
+		initStringInfo(&orderByStr);
 
+		appendStringInfo(&orderByStr, " order by ");
+		
 		if (nattrs > 0)
 		{
 			for (i = 0; i < nattrs; i++)
 			{
-				if (i != 0)
+				appendStringInfo(&columnStr,
+								"(case when pg_column_size(Ta.%s) > %d then NULL else Ta.%s  end) as %s, ",
+								quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								analyze_column_width_threshold,
+								quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								quote_identifier(NameStr(attrstats[i]->attr->attname)));
+			}
+			
+			for (i = 0; i < nattrs; i++)
+			{
+
+				appendStringInfo(&columnStr,
+								 "(case when pg_column_size(Ta.%s) > %d then 2 else 1  end) as ignore_%s",
+								 quote_identifier(NameStr(attrstats[i]->attr->attname)),
+								 analyze_column_width_threshold,
+								 quote_identifier(NameStr(attrstats[i]->attr->attname)));
+				appendStringInfo(&orderByStr, "ignore_%s DESC", quote_identifier(NameStr(attrstats[i]->attr->attname)));
+
+				if (i != nattrs - 1 )
 				{
 					appendStringInfo(&columnStr, ", ");
+					appendStringInfo(&orderByStr, ", ");
 				}
-				appendStringInfo(&columnStr,
-								"(case when pg_column_size(Ta.%s) > %d then NULL else Ta.%s  end) as %s, (case when pg_column_size(Ta.%s) > %d then 2 else 1  end) as ignore_%s",
-								quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								analyze_column_width_threshold,
-								quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								analyze_column_width_threshold,
-								quote_identifier(NameStr(attrstats[i]->attr->attname)));
 			}
 		}
 		else
@@ -1420,10 +1434,11 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 					appendStringInfo(&str, " UNION ALL ");
 				}
 
-				appendStringInfo(&str, "select %s from %s.%s as Ta ",
+				appendStringInfo(&str, "select %s from %s.%s as Ta %s",
 								 columnStr.data,
 								 quote_identifier(schemaName),
-								 quote_identifier(RelationGetRelationName(rel)));
+								 quote_identifier(RelationGetRelationName(rel)),
+								 orderByStr.data);
 
 				heap_close(rel, NoLock);
 			}
@@ -1433,10 +1448,12 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 		}
 		else
 		{
-			appendStringInfo(&str, "select %s from %s.%s as Ta %s limit %lu ",
+			appendStringInfo(&str, "select %s from %s.%s as Ta %s %s limit %lu ",
 							 columnStr.data,
 							 quote_identifier(schemaName),
-							 quote_identifier(tableName), thresholdStr.data, (unsigned long) targrows);
+							 quote_identifier(tableName),
+							 orderByStr.data,
+							 thresholdStr.data, (unsigned long) targrows);
 		}
 
 		oldcxt = CurrentMemoryContext;
@@ -1470,40 +1487,78 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 
 		for ( i = 0; i < nattrs; i++)
 		{
-			int j;
-			for (j = 0; j < sampleTuples; j++)
+			ignore_column[i] = false;
+			
+			int			tupattnum = attrstats[i]->tupattnum;
+				
+			HeapTuple	sampletup = SPI_tuptable->vals[0];
+
+			int something = DatumGetInt32(heap_getattr(sampletup, (nattrs + i + 1),
+													   SPI_tuptable->tupdesc,
+													   &nulls[tupattnum - 1]));
+			
+			if(something == 2)
 			{
-				int			tupattnum = attrstats[i]->tupattnum;
-
-				HeapTuple	sampletup = SPI_tuptable->vals[j];
-				vals[tupattnum - 1] = heap_getattr(sampletup, (2*(i+1)),
-												   SPI_tuptable->tupdesc,
-												   &nulls[tupattnum - 1]);
-				int something = DatumGetInt32(vals[tupattnum - 1]);
-
-				if(something == 2)
-				{
-					ignore_column[i] = true;
-					break;
-				}
+				ignore_column[i] = true;
 			}
 		}
+
+//		for ( i = 0; i < nattrs; i++)
+//		{
+//			int j;
+//			ignore_column[i] = false;
+//
+//			for (j = 0; j < sampleTuples; j++)
+//			{
+//				int			tupattnum = attrstats[i]->tupattnum;
+//
+//				HeapTuple	sampletup = SPI_tuptable->vals[j];
+//				vals[tupattnum - 1] = heap_getattr(sampletup, (2*(i+1)),
+//												   SPI_tuptable->tupdesc,
+//												   &nulls[tupattnum - 1]);
+//				int something = DatumGetInt32(vals[tupattnum - 1]);
+//
+//				if(something == 2)
+//				{
+//					ignore_column[i] = true;
+//					break;
+//				}
+//			}
+//		}
 
 		for (i = 0; i < sampleTuples; i++)
 		{
 			HeapTuple	sampletup = SPI_tuptable->vals[i];
 			int			j;
 
-			for (j = 0; j < nattrs * 2; j++)
+			for (j = 0; j < nattrs ; j++)
 			{
-				int			tupattnum = attrstats[i]->tupattnum;
+				int			tupattnum = attrstats[j]->tupattnum;
 				Assert(tupattnum >= 1 && tupattnum <= RelationGetNumberOfAttributes(onerel));
 
-				vals[tupattnum - 1] = heap_getattr(sampletup, j + 1,
-												   SPI_tuptable->tupdesc,
-												   &nulls[tupattnum - 1]);
+				if(ignore_column[j])
+				{
+					vals[tupattnum - 1] = NULL;
+					nulls[tupattnum - 1] = true;
+				}
+				else
+				{
+					vals[tupattnum - 1] = heap_getattr(sampletup, j + 1,
+													   SPI_tuptable->tupdesc,
+													   &nulls[tupattnum - 1]);
+				}
 			}
 			(*rows)[i] = heap_form_tuple(onerel->rd_att, vals, nulls);
+		}
+
+		for ( i = 0; i < nattrs; i++)
+		{
+			if (ignore_column[i])
+			{
+				pfree(attrstats[i]->attr);
+				pfree(attrstats[i]);
+				attrstats[i] = NULL;
+			}
 		}
 
 		/**
