@@ -414,13 +414,16 @@ analyze_rel(Oid relid, VacuumStmt *vacstmt,
 		{
 			VacAttrStats *stats = vacattrstats[i];
 
-			stats->rows = rows;
-			stats->tupDesc = onerel->rd_att;
-			(*stats->compute_stats) (stats,
-									 std_fetch_func,
-									 numrows,
-									 totalrows);
-			MemoryContextResetAndDeleteChildren(col_context);
+			if(stats->stats_valid)
+			{
+				stats->rows = rows;
+				stats->tupDesc = onerel->rd_att;
+				(*stats->compute_stats) (stats,
+										 std_fetch_func,
+										 numrows,
+										 totalrows);
+				MemoryContextResetAndDeleteChildren(col_context);
+			}
 		}
 
 		if (hasindex)
@@ -1311,7 +1314,6 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 {
 	StringInfoData str;
 	StringInfoData columnStr;
-	StringInfoData orderByStr;
 	StringInfoData thresholdStr;
 	int			i;
 	const char *schemaName = NULL;
@@ -1364,43 +1366,77 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 		tableName = RelationGetRelationName(onerel);
 
 		initStringInfo(&columnStr);
-		initStringInfo(&orderByStr);
+        bool *hasIgnoreCol = (bool *)palloc(sizeof(bool)*nattrs);
+        
+        if (nattrs > 0)
+        {
+            for (i = 0; i < nattrs; i++)
+            {
+				hasIgnoreCol[i] = false;
 
-		appendStringInfo(&orderByStr, " order by ");
-		
-		if (nattrs > 0)
-		{
-			for (i = 0; i < nattrs; i++)
-			{
-				appendStringInfo(&columnStr,
-								"(case when pg_column_size(Ta.%s) > %d then NULL else Ta.%s  end) as %s, ",
-								quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								analyze_column_width_threshold,
-								quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								quote_identifier(NameStr(attrstats[i]->attr->attname)));
-			}
-			
-			for (i = 0; i < nattrs; i++)
-			{
+                if (attrstats[i]->attr->atttypid == TEXTOID  ||
+                    attrstats[i]->attr->atttypid == BYTEAOID ||
+                    attrstats[i]->attr->atttypid == VARCHAROID )
+                {
+                    
+                    appendStringInfo(&columnStr,
+                                     "(case when octet_length(Ta.%s) > %d then NULL else Ta.%s  end) as %s, ",
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)),
+                                     analyze_column_width_threshold,
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)),
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)));
+                    
+                    appendStringInfo(&columnStr,
+                                     "(case when octet_length(Ta.%s) > %d then 2 else 1  end) as ignore_%s",
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)),
+                                     analyze_column_width_threshold,
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)));
+                    
+                    hasIgnoreCol[i] = true;
+                }
+				else if(attrstats[i]->attr->atttypid > 10000){
+					HeapTuple typtuple = SearchSysCacheCopy(TYPEOID,
+								  ObjectIdGetDatum(attrstats[i]->attr->atttypid),
+								  0, 0, 0);
+					if (!HeapTupleIsValid(typtuple))
+						elog(ERROR, "cache lookup failed for type %u", attrstats[i]->attr->atttypid);
+					Form_pg_type attrtype = (Form_pg_type) GETSTRUCT(typtuple);
 
-				appendStringInfo(&columnStr,
-								 "(case when pg_column_size(Ta.%s) > %d then 2 else 1  end) as ignore_%s",
-								 quote_identifier(NameStr(attrstats[i]->attr->attname)),
-								 analyze_column_width_threshold,
-								 quote_identifier(NameStr(attrstats[i]->attr->attname)));
-				appendStringInfo(&orderByStr, "ignore_%s DESC", quote_identifier(NameStr(attrstats[i]->attr->attname)));
-
-				if (i != nattrs - 1 )
-				{
-					appendStringInfo(&columnStr, ", ");
-					appendStringInfo(&orderByStr, ", ");
+					if ( attrtype->typlen < 0)
+					{
+						appendStringInfo(&columnStr,
+                                     "(case when pg_column_size(Ta.%s) > %d then NULL else Ta.%s  end) as %s, ",
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)),
+                                     1024,
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)),
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)));
+                    
+						appendStringInfo(&columnStr,
+                                     "(case when pg_column_size(Ta.%s) > %d then 2 else 1  end) as ignore_%s",
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)),
+                                     1024,
+                                     quote_identifier(NameStr(attrstats[i]->attr->attname)));
+                    
+						hasIgnoreCol[i] = true;
+					}
 				}
-			}
-		}
-		else
-		{
-			appendStringInfo(&columnStr, "NULL");
-		}
+
+                if (!hasIgnoreCol[i])
+				{
+                    appendStringInfo(&columnStr, "Ta.%s", quote_identifier(NameStr(attrstats[i]->attr->attname)));
+                }
+                
+                if (i != nattrs - 1 )
+                {
+                    appendStringInfo(&columnStr, ", ");
+                }
+            }
+            
+        }
+        else
+        {
+            appendStringInfo(&columnStr, "NULL");
+        }
 
 		/*
 		 * If table is partitioned, we create a sample over all parts.
@@ -1434,11 +1470,10 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 					appendStringInfo(&str, " UNION ALL ");
 				}
 
-				appendStringInfo(&str, "select %s from %s.%s as Ta %s",
+				appendStringInfo(&str, "select %s from %s.%s as Ta ",
 								 columnStr.data,
 								 quote_identifier(schemaName),
-								 quote_identifier(RelationGetRelationName(rel)),
-								 orderByStr.data);
+								 quote_identifier(RelationGetRelationName(rel)));
 
 				heap_close(rel, NoLock);
 			}
@@ -1448,12 +1483,10 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 		}
 		else
 		{
-			appendStringInfo(&str, "select %s from %s.%s as Ta %s %s limit %lu ",
+			appendStringInfo(&str, "select %s from %s.%s as Ta %s limit %lu ",
 							 columnStr.data,
 							 quote_identifier(schemaName),
-							 quote_identifier(tableName),
-							 orderByStr.data,
-							 thresholdStr.data, (unsigned long) targrows);
+							 quote_identifier(tableName), thresholdStr.data, (unsigned long) targrows);
 		}
 
 		oldcxt = CurrentMemoryContext;
@@ -1474,104 +1507,63 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 
 		/* Ok, read in the tuples to *rows */
 		MemoryContextSwitchTo(oldcxt);
-		vals = (Datum *) palloc(2 * RelationGetNumberOfAttributes(onerel) * sizeof(Datum));
-		nulls = (bool *) palloc(2 * RelationGetNumberOfAttributes(onerel) * sizeof(bool));
-		for (i = 0; i < 2 * RelationGetNumberOfAttributes(onerel); i++)
+		vals = (Datum *) palloc(RelationGetNumberOfAttributes(onerel) * sizeof(Datum));
+		nulls = (bool *) palloc(RelationGetNumberOfAttributes(onerel) * sizeof(bool));
+		for (i = 0; i < RelationGetNumberOfAttributes(onerel); i++)
 		{
 			vals[i] = (Datum) 0;
 			nulls[i] = true;
 		}
 
 		*rows = (HeapTuple *) palloc(sampleTuples * sizeof(HeapTuple));
-		bool *ignore_column = (bool *)palloc(sizeof(bool)*nattrs);
-
-		for ( i = 0; i < nattrs; i++)
-		{
-			ignore_column[i] = false;
-
-			int			tupattnum = attrstats[i]->tupattnum;
-
-			HeapTuple	sampletup = SPI_tuptable->vals[0];
-
-			int something = DatumGetInt32(heap_getattr(sampletup, (nattrs + i + 1),
-													   SPI_tuptable->tupdesc,
-													   &nulls[tupattnum - 1]));
-
-			if(something == 2)
-			{
-				ignore_column[i] = true;
-			}
-		}
-
-//		for ( i = 0; i < nattrs; i++)
-//		{
-//			int j;
-//			ignore_column[i] = false;
-//
-//			for (j = 0; j < sampleTuples; j++)
-//			{
-//				int			tupattnum = attrstats[i]->tupattnum;
-//
-//				HeapTuple	sampletup = SPI_tuptable->vals[j];
-//				vals[tupattnum - 1] = heap_getattr(sampletup, (2*(i+1)),
-//												   SPI_tuptable->tupdesc,
-//												   &nulls[tupattnum - 1]);
-//				int something = DatumGetInt32(vals[tupattnum - 1]);
-//
-//				if(something == 2)
-//				{
-//					ignore_column[i] = true;
-//					break;
-//				}
-//			}
-//		}
+        bool *removeAttr = (bool *)palloc(sizeof(bool)*nattrs);
 
 		for (i = 0; i < sampleTuples; i++)
 		{
 			HeapTuple	sampletup = SPI_tuptable->vals[i];
 			int			j;
-
-			for (j = 0; j < nattrs ; j++)
+            int index = 0;
+            
+			for (j = 0; j < nattrs; j++)
 			{
 				int			tupattnum = attrstats[j]->tupattnum;
+				removeAttr[j] = false;
+
 				Assert(tupattnum >= 1 && tupattnum <= RelationGetNumberOfAttributes(onerel));
 
-				if(ignore_column[j])
-				{
-					vals[tupattnum - 1] = NULL;
-					nulls[tupattnum - 1] = true;
-				}
-				else
-				{
-					vals[tupattnum - 1] = heap_getattr(sampletup, j + 1,
-													   SPI_tuptable->tupdesc,
-													   &nulls[tupattnum - 1]);
-				}
-			}
+				vals[tupattnum - 1] = heap_getattr(sampletup, index + 1,
+												   SPI_tuptable->tupdesc,
+												   &nulls[tupattnum - 1]);
+                if(hasIgnoreCol[j])
+                {
+                    index++;
+                    
+                    if(nulls[tupattnum - 1])
+                    {
+                        bool dummyNull = false;
+                        Datum dummyVal = heap_getattr(sampletup, index + 1,
+                                                      SPI_tuptable->tupdesc,
+                                                       &dummyNull);
+                        
+                        if(DatumGetInt32(dummyVal) == 2)
+                        {
+                            // Datum is too large. Do not include it in samples
+							removeAttr[j] = true;
+						}
+
+                    }
+                    index++;
+                }
+            }
 			(*rows)[i] = heap_form_tuple(onerel->rd_att, vals, nulls);
 		}
 
-		int tcnt = 0;
-		for ( i = 0; i < nattrs; i++)
+		for (i = 0; i < nattrs; i++)
 		{
-			if (ignore_column[i])
+			if(removeAttr[i])
 			{
-				pfree(attrstats[i]->attr);
-				pfree(attrstats[i]);
-				attrstats[i] = NULL;
+				attrstats[i]->stats_valid = 0;
 			}
-			else
-			{
-				attrstats[tcnt] = attrstats[i];
-				tcnt++;
-			}
-		}
-
-		for (; tcnt < nattrs; tcnt++)
-		{
-			pfree(attrstats[i]->attr);
-			pfree(attrstats[i]);
-			attrstats[tcnt] = NULL;
 		}
 
 		/**
@@ -1807,7 +1799,7 @@ update_attstats(Oid relid, int natts, VacAttrStats **vacattrstats)
 		char		replaces[Natts_pg_statistic];
 
 		/* Ignore attr if we weren't able to collect stats */
-		if (!stats->stats_valid)
+		if (!stats || !stats->stats_valid)
 			continue;
 
 		/*
