@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Copyright (C) 2017 Pivotal Software, Inc.
 //
 //	@filename:
 //		CTranslatorDXLToPlStmt.cpp
@@ -32,6 +32,7 @@
 #include "gpopt/translate/CTranslatorUtils.h"
 #include "gpopt/translate/CIndexQualInfo.h"
 
+#include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/operators/CDXLDirectDispatchInfo.h"
 
@@ -50,6 +51,7 @@ using namespace gpdxl;
 using namespace gpos;
 using namespace gpopt;
 using namespace gpmd;
+using namespace gpnaucrates;
 
 #define GPDXL_ROOT_PLAN_ID -1
 #define GPDXL_PLAN_ID_START 1
@@ -119,6 +121,8 @@ CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt
 	m_ulPartitionSelectorCounter(0)
 {
 	m_pdxlsctranslator = GPOS_NEW(m_pmp) CTranslatorDXLToScalar(m_pmp, m_pmda, m_ulSegments);
+	m_phmColIdRteIdxPrintableFilter = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
+	m_phmColIdAttnoPrintableFilter = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
 	InitTranslators();
 }
 
@@ -133,6 +137,8 @@ CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt
 CTranslatorDXLToPlStmt::~CTranslatorDXLToPlStmt()
 {
 	GPOS_DELETE(m_pdxlsctranslator);
+	m_phmColIdRteIdxPrintableFilter->Release();
+	m_phmColIdAttnoPrintableFilter->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -467,6 +473,44 @@ CTranslatorDXLToPlStmt::SetParamIds(Plan* pplan)
 	pplan->allParam = pbitmapset;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToPlStmt::InsertMappingsForPrintableFilter
+//
+//	@doc:
+//		For printable filters, the INNER/OUTER references in varno are not
+//		relevant. Hence we need true varnos in them. These hash maps contain
+//		following mappings:
+//			ColId -> RTE index   and
+//			ColId -> Att no
+//		Varnos and varattnos will be set by performing lookup on these
+//		hashmaps.
+//
+//---------------------------------------------------------------------------
+void
+CTranslatorDXLToPlStmt::InsertMappingsForPrintableFilter
+	(
+	const CDXLTableDescr *pdxltabdesc
+	)
+{
+	ULONG ulRteIdx = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte());
+
+	const ULONG ulArity = pdxltabdesc->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		const CDXLColDescr *pdxlcd = pdxltabdesc->Pdxlcd(ul);
+		if(pdxlcd->IAttno() > 0)
+		{
+			ULONG *pulColId = GPOS_NEW(m_pmp) ULONG(pdxlcd->UlID());
+			ULONG *pulRteIdx = GPOS_NEW(m_pmp) ULONG(ulRteIdx);
+			PhmColIdRteIdxPrintableFilter()->FInsert(pulColId, pulRteIdx);
+
+			ULONG *pulColIdForAttno = GPOS_NEW(m_pmp) ULONG(pdxlcd->UlID());
+			ULONG *pulAttno = GPOS_NEW(m_pmp) ULONG((ULONG)(pdxlcd->IAttno()));
+			PhmColIdAttnoPrintableFilter()->FInsert(pulColIdForAttno, pulAttno);
+		}
+	}
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1096,6 +1140,8 @@ CTranslatorDXLToPlStmt::PtsFromDXLTblScan
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= ACL_SELECT;
 	m_pctxdxltoplstmt->AddRTE(prte);
+
+	InsertMappingsForPrintableFilter(pdxlopTS->Pdxltabdesc());
 
 	Plan *pplan = NULL;
 	Plan *pplanReturn = NULL;
@@ -3413,7 +3459,19 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 	//translate printable filter
 	if (!m_pdxlsctranslator->FConstTrue(pdxlnPrintableFilter, m_pmda))
 	{
-		ppartsel->printablePredicate = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnPrintableFilter, &mapcidvarplstmt);
+		CMappingColIdVarPlStmt mapcidvarplstmtPrintableFilter = CMappingColIdVarPlStmt
+																	(
+																	m_pmp,
+																	NULL /*pdxltrctxbt*/,
+																	pdrgpdxltrctxWithSiblings,
+																	pdxltrctxOut,
+																	m_pctxdxltoplstmt,
+																	pplan,
+																	false,
+																	m_phmColIdRteIdxPrintableFilter,
+																	m_phmColIdAttnoPrintableFilter
+																	);
+		ppartsel->printablePredicate = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnPrintableFilter, &mapcidvarplstmtPrintableFilter);
 	}
 
 	ppartsel->staticPartOids = NIL;
@@ -4207,6 +4265,8 @@ CTranslatorDXLToPlStmt::PplanDTS
 	prte->requiredPerms |= ACL_SELECT;
 
 	m_pctxdxltoplstmt->AddRTE(prte);
+
+	InsertMappingsForPrintableFilter(pdxlop->Pdxltabdesc());
 
 	// create dynamic scan node
 	DynamicTableScan *pdts = MakeNode(DynamicTableScan);
@@ -6223,4 +6283,15 @@ CTranslatorDXLToPlStmt::PplanBitmapIndexProbe
 	return pplan;
 }
 
+HMUlUl*
+CTranslatorDXLToPlStmt::PhmColIdRteIdxPrintableFilter()
+{
+	return m_phmColIdRteIdxPrintableFilter;
+}
+
+HMUlUl*
+CTranslatorDXLToPlStmt::PhmColIdAttnoPrintableFilter()
+{
+	return m_phmColIdAttnoPrintableFilter;
+}
 // EOF

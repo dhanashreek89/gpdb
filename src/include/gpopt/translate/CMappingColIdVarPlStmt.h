@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2011 Greenplum, Inc.
+//	Copyright (C) 2017 Pivotal Software, Inc.
 //
 //	@filename:
 //		CMappingColIdVarPlStmt.h
@@ -23,6 +23,7 @@
 
 #include "gpopt/translate/CMappingColIdVar.h"
 #include "gpopt/translate/CDXLTranslateContext.h"
+#include "gpopt/translate/CTranslatorUtils.h"
 
 //fwd decl
 struct Var;
@@ -30,7 +31,6 @@ struct Plan;
 
 namespace gpdxl
 {
-
 	// fwd decl
 	class CDXLTranslateContextBaseTable;
 	class CContextDXLToPlStmt;
@@ -61,6 +61,12 @@ namespace gpdxl
 			// with a param node
 			CContextDXLToPlStmt *m_pctxdxltoplstmt;
 
+			BOOL m_fUseInnerOuter;
+
+			HMUlUl *m_phmColIdRteIdxPrintableFilter;
+
+			HMUlUl *m_phmColIdAttnoPrintableFilter;
+
 		public:
 
 			CMappingColIdVarPlStmt
@@ -71,6 +77,19 @@ namespace gpdxl
 				CDXLTranslateContext *pdxltrctxOut,
 				CContextDXLToPlStmt *pctxdxltoplstmt,
 				Plan *pplan
+				);
+
+			CMappingColIdVarPlStmt
+				(
+				IMemoryPool *pmp,
+				const CDXLTranslateContextBaseTable *pdxltrctxbt,
+				DrgPdxltrctx *pdrgpdxltrctx,
+				CDXLTranslateContext *pdxltrctxOut,
+				CContextDXLToPlStmt *pctxdxltoplstmt,
+				Plan *pplan,
+				bool fUseInnerOuter,
+				HMUlUl *phmColIdRteIdxPrintableFilter,
+				HMUlUl *phmColIdAttnoPrintableFilter
 				);
 
 			// translate DXL ScalarIdent node into GPDB Var node
