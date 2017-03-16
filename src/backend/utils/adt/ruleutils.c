@@ -3239,6 +3239,15 @@ get_variable(Var *var, int levelsup, bool istoplevel, deparse_context *context)
 		dpns->inner_plan = save_inner;
 		return NULL;
 	}
+	else if(var->varno == -1)
+	{
+		TargetEntry *tle = get_tle_by_resno(dpns->inner_plan->targetlist, var->varattno);
+		if (!tle || !IsA(tle->expr, Const))
+			elog(ERROR, "bogus varattno for var: %d", var->varattno);
+
+		appendStringInfoString(buf, tle->resname);
+		return NULL;
+	}
 	else
 	{
 		elog(ERROR, "bogus varno: %d", var->varno);
@@ -4930,6 +4939,12 @@ get_rule_expr(Node *node, deparse_context *context,
 				}
 			}
 			break;
+		case T_PartOidExpr:
+			{
+				appendStringInfoString(buf, "PartOidExpr Failing");
+
+			}
+							break;
 
 		default:
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));

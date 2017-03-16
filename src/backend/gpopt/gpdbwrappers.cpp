@@ -3026,4 +3026,22 @@ gpdb::FMDCacheNeedsReset
 	return true;
 }
 
+Const*
+gpdb::PnodeMakeConst
+	(
+		Oid consttype,
+		  int32 consttypmod,
+		  int constlen,
+		  Datum constvalue,
+		  bool constisnull,
+		  bool constbyval
+	)
+{
+	GP_WRAP_START;
+	{
+		return makeConst(consttype, consttypmod,constlen, constvalue, constisnull, constbyval);
+	}
+	GP_WRAP_END;
+	return NULL;
+}
 // EOF

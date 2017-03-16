@@ -1833,8 +1833,15 @@ CTranslatorDXLToScalar::PexprFromDXLNodeScId
 	Expr *pexprResult = NULL;
 	if (NULL == pmapcidvarplstmt || NULL == pmapcidvarplstmt->PpdxltrctxOut()->Pmecolidparamid(pdxlop->Pdxlcr()->UlID()))
 	{
-		// not an outer ref -> create var node
-		pexprResult = (Expr *) pmapcidvar->PvarFromDXLNodeScId(pdxlop);
+		if(!pmapcidvarplstmt->FuseInnerOuter())
+		{
+			const ULONG ulColId = pdxlop->Pdxlcr()->UlID();
+			StringInfo *alias = pmapcidvarplstmt->PhmColIdAliasPrintableFilter()->PtLookup(&ulColId);
+			if(alias)
+				pexprResult = (Expr *) gpdb::PnodeMakeConst(25, -1, (*alias)->len, CStringGetDatum((*alias)->data), false, true);
+		}
+		if (pexprResult == NULL)
+			pexprResult = (Expr *) pmapcidvar->PvarFromDXLNodeScId(pdxlop);
 	}
 	else
 	{

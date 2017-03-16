@@ -624,6 +624,8 @@ namespace gpdb {
 	// table has been changed?)
 	bool FMDCacheNeedsReset(void);
 
+	Const *PnodeMakeConst(Oid consttype, int32 consttypmod, int constlen, Datum constvalue,bool constisnull,bool constbyval);
+
 } //namespace gpdb
 
 #define ForEach(cell, l)	\
