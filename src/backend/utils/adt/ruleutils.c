@@ -5578,6 +5578,9 @@ get_const_expr(Const *constval, deparse_context *context, int showtype)
 			else
 				appendStringInfo(buf, "false");
 			break;
+		case TEXTOID:
+			appendStringInfo(buf, "%s", extval);
+			break;
 
 		default:
 
@@ -5626,6 +5629,9 @@ get_const_expr(Const *constval, deparse_context *context, int showtype)
 			 * there's a specific typmod we need to show it.
 			 */
 			needlabel = !isfloat || (constval->consttypmod >= 0);
+			break;
+		case TEXTOID:
+			needlabel = false;
 			break;
 		default:
 			needlabel = true;

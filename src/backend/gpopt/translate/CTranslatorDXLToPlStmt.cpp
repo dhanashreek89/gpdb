@@ -123,6 +123,7 @@ CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt
 	m_pdxlsctranslator = GPOS_NEW(m_pmp) CTranslatorDXLToScalar(m_pmp, m_pmda, m_ulSegments);
 	m_phmColIdRteIdxPrintableFilter = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
 	m_phmColIdAttnoPrintableFilter = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
+	m_phmColIdAliasPrintableFilter = GPOS_NEW(m_pmp) HMUlStr(m_pmp);
 	InitTranslators();
 }
 
@@ -139,6 +140,7 @@ CTranslatorDXLToPlStmt::~CTranslatorDXLToPlStmt()
 	GPOS_DELETE(m_pdxlsctranslator);
 	m_phmColIdRteIdxPrintableFilter->Release();
 	m_phmColIdAttnoPrintableFilter->Release();
+	m_phmColIdAliasPrintableFilter->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -3469,7 +3471,8 @@ CTranslatorDXLToPlStmt::PplanPartitionSelector
 																	pplan,
 																	false,
 																	m_phmColIdRteIdxPrintableFilter,
-																	m_phmColIdAttnoPrintableFilter
+																	m_phmColIdAttnoPrintableFilter,
+																	m_phmColIdAliasPrintableFilter
 																	);
 		ppartsel->printablePredicate = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnPrintableFilter, &mapcidvarplstmtPrintableFilter);
 	}
@@ -5160,6 +5163,11 @@ CTranslatorDXLToPlStmt::PlTargetListFromProjList
 		pdxltrctxOut->InsertMapping(pdxlopPrel->UlId(), pte);
 
 		plTargetList = gpdb::PlAppendElement(plTargetList, pte);
+
+		if (!IsA(pexpr, Var)) {
+			CWStringConst *alias = GPOS_NEW(m_pmp) CWStringConst(m_pmp, pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
+			m_phmColIdAliasPrintableFilter->FInsert(GPOS_NEW(m_pmp) ULONG(pdxlopPrel->UlId()), alias);
+		}
 	}
 
 	return plTargetList;

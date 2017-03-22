@@ -3026,4 +3026,25 @@ gpdb::FMDCacheNeedsReset
 	return true;
 }
 
+Const*
+gpdb::PstringToConst
+(Datum str, Oid datatype)
+{
+	GP_WRAP_START;
+	{
+
+		//return  makeConst(INT8OID, -1, 8, Int64GetDatum(1), false, true);
+//					val = CStringGetDatum(strVal(value));
+//
+//			typeid = UNKNOWNOID;	/* will be coerced later */
+//			typelen = -2;		/* cstring-style varwidth type */
+//			typebyval = false;
+//			break;
+
+		return makeConst(datatype, -1, -1,
+					 str, false, false);
+	}
+	GP_WRAP_END;
+	return NULL;
+}
 // EOF

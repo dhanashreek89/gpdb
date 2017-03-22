@@ -146,6 +146,11 @@ namespace gpdxl
 			// map UlColdId to Attno for printable filters
 			HMUlUl *m_phmColIdAttnoPrintableFilter;
 
+			typedef CHashMap<ULONG, CWStringConst, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+					CleanupDelete<ULONG>, CleanupDelete<CWStringConst> > HMUlStr;
+
+			HMUlStr *m_phmColIdAliasPrintableFilter;
+
 			// command type
 			CmdType m_cmdtype;
 			
@@ -279,6 +284,8 @@ namespace gpdxl
 			HMUlUl *PhmColIdRteIdxPrintableFilter();
 
 			HMUlUl *PhmColIdAttnoPrintableFilter();
+
+			HMUlStr *PhmColIdAliasPrintableFilter();
 
 		private:
 

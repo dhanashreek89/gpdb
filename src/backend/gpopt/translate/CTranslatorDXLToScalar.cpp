@@ -1833,8 +1833,30 @@ CTranslatorDXLToScalar::PexprFromDXLNodeScId
 	Expr *pexprResult = NULL;
 	if (NULL == pmapcidvarplstmt || NULL == pmapcidvarplstmt->PpdxltrctxOut()->Pmecolidparamid(pdxlop->Pdxlcr()->UlID()))
 	{
-		// not an outer ref -> create var node
-		pexprResult = (Expr *) pmapcidvar->PvarFromDXLNodeScId(pdxlop);
+
+		if(!pmapcidvarplstmt->FuseInnerOuter())
+		{
+			const ULONG ulColId = pdxlop->Pdxlcr()->UlID();
+			CWStringConst *aliasName = pmapcidvarplstmt->PhmColIdAliasPrintableFilter()->PtLookup(&ulColId);
+			if (aliasName)
+			{
+
+				char *alias = CTranslatorUtils::SzFromWsz(aliasName->Wsz());
+				int len = strlen(alias);
+
+				text *aliasnew = (text *) palloc(len + VARHDRSZ);
+				SET_VARSIZE(aliasnew, len + VARHDRSZ);
+				memcpy(VARDATA(aliasnew), alias, len);
+				if(aliasnew)
+					pexprResult =  (Expr *) gpdb::PstringToConst(PointerGetDatum(aliasnew), 25);
+					//pexprResult = (Expr *) gpdb::PnodeMakeConst(25, -1, (int)aliasName->UlLength(), CStringGetDatum(alias), false, true);
+			}
+		}
+		if (pexprResult == NULL)
+		{
+			// not an outer ref -> create var node
+			pexprResult = (Expr *) pmapcidvar->PvarFromDXLNodeScId(pdxlop);
+		}
 	}
 	else
 	{

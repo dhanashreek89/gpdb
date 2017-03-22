@@ -67,6 +67,11 @@ namespace gpdxl
 
 			HMUlUl *m_phmColIdAttnoPrintableFilter;
 
+			typedef CHashMap<ULONG, CWStringConst, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+				CleanupDelete<ULONG>, CleanupDelete<CWStringConst> > HMUlStr;
+
+			HMUlStr *m_phmColIdAliasPrintableFilter;
+
 		public:
 
 			CMappingColIdVarPlStmt
@@ -89,7 +94,8 @@ namespace gpdxl
 				Plan *pplan,
 				bool fUseInnerOuter,
 				HMUlUl *phmColIdRteIdxPrintableFilter,
-				HMUlUl *phmColIdAttnoPrintableFilter
+				HMUlUl *phmColIdAttnoPrintableFilter,
+				HMUlStr *phmColIdAliasPrintableFilter
 				);
 
 			// translate DXL ScalarIdent node into GPDB Var node
@@ -107,6 +113,11 @@ namespace gpdxl
 
 			// return the context of the DXL->PlStmt translation
 			CContextDXLToPlStmt *Pctxdxltoplstmt();
+
+			BOOL FuseInnerOuter();
+
+			HMUlStr *
+			PhmColIdAliasPrintableFilter();
 	};
 }
 

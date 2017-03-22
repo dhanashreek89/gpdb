@@ -35,6 +35,9 @@ using namespace gpos;
 using namespace gpmd;
 using namespace gpnaucrates;
 
+typedef CHashMap<ULONG, CWStringConst, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+CleanupDelete<ULONG>, CleanupDelete<CWStringConst> > HMUlStr;
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CMappingColIdVarPlStmt::CMappingColIdVarPlStmt
@@ -74,7 +77,9 @@ CMappingColIdVarPlStmt::CMappingColIdVarPlStmt
 	Plan *pplan,
 	BOOL fUseInnerOuter,
 	HMUlUl *phmColIdRteIdxPrintableFilter,
-	HMUlUl *phmColIdAttnoPrintableFilter
+	HMUlUl *phmColIdAttnoPrintableFilter,
+	HMUlStr *phmColIdAliasPrintableFilter
+
 	)
 	:
 	CMappingColIdVar(pmp),
@@ -84,7 +89,8 @@ CMappingColIdVarPlStmt::CMappingColIdVarPlStmt
 	m_pctxdxltoplstmt(pctxdxltoplstmt),
 	m_fUseInnerOuter(fUseInnerOuter),
 	m_phmColIdRteIdxPrintableFilter(phmColIdRteIdxPrintableFilter),
-	m_phmColIdAttnoPrintableFilter(phmColIdAttnoPrintableFilter)
+	m_phmColIdAttnoPrintableFilter(phmColIdAttnoPrintableFilter),
+	m_phmColIdAliasPrintableFilter(phmColIdAliasPrintableFilter)
 {
 	GPOS_ASSERT(NULL != pplan);
 
@@ -312,6 +318,18 @@ CMappingColIdVarPlStmt::PvarFromDXLNodeScId
 	pvar->varoattno = attnoOld;
 
 	return pvar;
+}
+
+bool
+CMappingColIdVarPlStmt::FuseInnerOuter()
+{
+	return m_fUseInnerOuter;
+}
+
+HMUlStr *
+CMappingColIdVarPlStmt::PhmColIdAliasPrintableFilter()
+{
+	return m_phmColIdAliasPrintableFilter;
 }
 
 // EOF
