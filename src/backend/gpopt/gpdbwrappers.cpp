@@ -3026,4 +3026,18 @@ gpdb::FMDCacheNeedsReset
 	return true;
 }
 
+List *
+gpdb::PListRelationGetIndexList
+		(
+			Relation rel
+		)
+{
+	GP_WRAP_START;
+	{
+		return RelationGetIndexList(rel);
+	}
+	GP_WRAP_END;
+
+	return NULL;
+}
 // EOF

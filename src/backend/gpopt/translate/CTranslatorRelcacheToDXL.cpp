@@ -264,7 +264,7 @@ CTranslatorRelcacheToDXL::PdrgpmdidRelIndexes
 	else  
 	{
 		// interior or leaf partition: do not consider indexes
-		return pdrgpmdidIndexes;
+		plIndexOids = gpdb::PListRelationGetIndexList(rel);
 	}
 	
 	ListCell *plc = NULL;
@@ -329,7 +329,7 @@ CTranslatorRelcacheToDXL::PlIndexOidsPartTable
 	}
 
 	List *plOids = NIL;
-	
+
 	LogicalIndexes *plgidx = gpdb::Plgidx(rel->rd_id);
 
 	if (NULL == plgidx)
@@ -978,7 +978,7 @@ CTranslatorRelcacheToDXL::Pmdindex
 
 		if (gpdb::FLeafPartition(oidRel))
 		{
-			oidRel = gpdb::OidRootPartition(oidRel);
+			//oidRel = gpdb::OidRootPartition(oidRel);
 		}
 #ifdef FAULT_INJECTOR
 		gpdb::OptTasksFaultInjector(OptRelcacheTranslatorCatalogAccess);

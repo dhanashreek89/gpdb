@@ -624,6 +624,8 @@ namespace gpdb {
 	// table has been changed?)
 	bool FMDCacheNeedsReset(void);
 
+	List *PListRelationGetIndexList(Relation rel);
+
 } //namespace gpdb
 
 #define ForEach(cell, l)	\

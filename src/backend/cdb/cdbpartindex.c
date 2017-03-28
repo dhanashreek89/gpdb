@@ -284,7 +284,7 @@ BuildLogicalIndexInfo(Oid relid)
 /* 
  * getPartitionIndexNode
  *   Construct a PartitionIndexNode tree for the given part.
- *   Recurs to construct branches. 
+ *   Recurs to construct branches.
  */
 static void
 getPartitionIndexNode(Oid rootOid,
