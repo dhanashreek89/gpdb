@@ -1938,7 +1938,112 @@ explain analyze select a.* from mpp8031 a, mpp8031 b where a.oid = b.oid;
 (31 rows)
 
 drop table mpp8031;
+CREATE TABLE partitioned_table (dk int, interior_pk int, pk int) DISTRIBUTED BY (dk)
+  PARTITION BY RANGE(interior_pk)
+    SUBPARTITION BY RANGE(pk)
+      SUBPARTITION TEMPLATE (END(10), START(10))
+  (END(10), END(20));
+NOTICE:  CREATE TABLE will create partition "partitioned_table_1_prt_1" for table "partitioned_table"
+NOTICE:  CREATE TABLE will create partition "partitioned_table_1_prt_1_2_prt_1" for table "partitioned_table_1_prt_1"
+NOTICE:  CREATE TABLE will create partition "partitioned_table_1_prt_1_2_prt_2" for table "partitioned_table_1_prt_1"
+NOTICE:  CREATE TABLE will create partition "partitioned_table_1_prt_2" for table "partitioned_table"
+NOTICE:  CREATE TABLE will create partition "partitioned_table_1_prt_2_2_prt_1" for table "partitioned_table_1_prt_2"
+NOTICE:  CREATE TABLE will create partition "partitioned_table_1_prt_2_2_prt_2" for table "partitioned_table_1_prt_2"
+CREATE INDEX idx_partitioned_table ON partitioned_table(pk);
+NOTICE:  building index for child partition "partitioned_table_1_prt_1"
+NOTICE:  building index for child partition "partitioned_table_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "partitioned_table_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "partitioned_table_1_prt_2"
+NOTICE:  building index for child partition "partitioned_table_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "partitioned_table_1_prt_2_2_prt_2"
+INSERT INTO partitioned_table SELECT i, i, i FROM generate_series(1, 19) AS i;
+EXPLAIN SELECT * FROM partitioned_table WHERE pk < 12;
+                                                   QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.00 rows=1 width=12)
+   ->  Sequence  (cost=0.00..2.00 rows=1 width=12)
+         ->  Partition Selector for partitioned_table (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+               Filter: pk < 12
+               Partitions selected: 4 (out of 4)
+         ->  Dynamic Index Scan on partitioned_table (dynamic scan id: 1)  (cost=0.00..2.00 rows=1 width=12)
+               Index Cond: pk < 12
+ Settings:  optimizer=on
+ Optimizer status: PQO version 2.23.0
+(9 rows)
+
+SELECT * FROM partitioned_table WHERE pk < 12;
+ dk | interior_pk | pk
+----+-------------+----
+  1 |           1 |  1
+  2 |           2 |  2
+  3 |           3 |  3
+  4 |           4 |  4
+  5 |           5 |  5
+  6 |           6 |  6
+  7 |           7 |  7
+ 10 |          10 | 10
+ 11 |          11 | 11
+  8 |           8 |  8
+  9 |           9 |  9
+(11 rows)
+
+EXPLAIN SELECT * FROM partitioned_table_1_prt_1_2_prt_1 WHERE pk < 3;
+                                                              QUERY PLAN
+--------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.00 rows=1 width=12)
+   ->  Index Scan using idx_partitioned_table_1_prt_1_2_prt_1 on partitioned_table_1_prt_1_2_prt_1  (cost=0.00..2.00 rows=1 width=12)
+         Index Cond: pk < 3
+ Settings:  optimizer=on
+ Optimizer status: PQO version 2.23.0
+(5 rows)
+
+SELECT * FROM partitioned_table_1_prt_1_2_prt_1 WHERE pk < 3;
+ dk | interior_pk | pk
+----+-------------+----
+  1 |           1 |  1
+  2 |           2 |  2
+(2 rows)
+
+EXPLAIN SELECT * FROM partitioned_table_1_prt_1 WHERE pk < 3;
+                                                          QUERY PLAN
+------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2147.50 rows=51934 width=13)
+   ->  Append  (cost=0.00..2147.50 rows=17312 width=13)
+         ->  Seq Scan on partitioned_table_1_prt_1  (cost=0.00..1073.75 rows=8656 width=12)
+               Filter: pk < 3
+         ->  Seq Scan on partitioned_table_1_prt_1_2_prt_1 partitioned_table_1_prt_1  (cost=0.00..1073.75 rows=8656 width=12)
+               Filter: pk < 3
+ Settings:  optimizer=on
+ Optimizer status: legacy query optimizer
+(8 rows)
+
+SELECT * FROM partitioned_table_1_prt_1 WHERE pk < 3;
+ dk | interior_pk | pk
+----+-------------+----
+  1 |           1 |  1
+  2 |           2 |  2
+(2 rows)
+
 -- CLEANUP
 -- start_ignore
 drop schema if exists bfv_partition;
+NOTICE:  table partitioned_table_1_prt_2_2_prt_2 depends on schema bfv_partition
+NOTICE:  constraint partitioned_table_1_prt_2_check on table partitioned_table_1_prt_2_2_prt_2 depends on table partitioned_table_1_prt_2_2_prt_2
+NOTICE:  constraint partitioned_table_1_prt_2_2_prt_2_check on table partitioned_table_1_prt_2_2_prt_2 depends on table partitioned_table_1_prt_2_2_prt_2
+NOTICE:  table partitioned_table_1_prt_2_2_prt_1 depends on schema bfv_partition
+NOTICE:  constraint partitioned_table_1_prt_2_check on table partitioned_table_1_prt_2_2_prt_1 depends on table partitioned_table_1_prt_2_2_prt_1
+NOTICE:  constraint partitioned_table_1_prt_2_2_prt_1_check on table partitioned_table_1_prt_2_2_prt_1 depends on table partitioned_table_1_prt_2_2_prt_1
+NOTICE:  table partitioned_table_1_prt_2 depends on schema bfv_partition
+NOTICE:  constraint partitioned_table_1_prt_2_check on table partitioned_table_1_prt_2 depends on table partitioned_table_1_prt_2
+NOTICE:  table partitioned_table_1_prt_1_2_prt_2 depends on schema bfv_partition
+NOTICE:  constraint partitioned_table_1_prt_1_check on table partitioned_table_1_prt_1_2_prt_2 depends on table partitioned_table_1_prt_1_2_prt_2
+NOTICE:  constraint partitioned_table_1_prt_1_2_prt_2_check on table partitioned_table_1_prt_1_2_prt_2 depends on table partitioned_table_1_prt_1_2_prt_2
+NOTICE:  table partitioned_table_1_prt_1_2_prt_1 depends on schema bfv_partition
+NOTICE:  constraint partitioned_table_1_prt_1_check on table partitioned_table_1_prt_1_2_prt_1 depends on table partitioned_table_1_prt_1_2_prt_1
+NOTICE:  constraint partitioned_table_1_prt_1_2_prt_1_check on table partitioned_table_1_prt_1_2_prt_1 depends on table partitioned_table_1_prt_1_2_prt_1
+NOTICE:  table partitioned_table_1_prt_1 depends on schema bfv_partition
+NOTICE:  constraint partitioned_table_1_prt_1_check on table partitioned_table_1_prt_1 depends on table partitioned_table_1_prt_1
+NOTICE:  table partitioned_table depends on schema bfv_partition
+ERROR:  cannot drop schema bfv_partition because other objects depend on it
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 -- end_ignore

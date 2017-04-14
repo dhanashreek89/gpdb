@@ -519,6 +519,8 @@ namespace gpdb {
 	// A logical index is partial if it's not present on all leaf partitions
 	// c.f. BuildLogicalIndexInfo in cdbpartindex.c
 	bool FPartialLogicalIndex(const LogicalIndexInfo* logicalIndexInfo);
+    
+    bool FRelationHasSupers(Oid relid);
 
 	// return the logical indexes for a partitioned table
 	LogicalIndexes *Plgidx(Oid oid);

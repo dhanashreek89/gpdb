@@ -3055,4 +3055,18 @@ gpdb::FPartialLogicalIndex
 	return logicalIndexInfo->partCons || logicalIndexInfo->defaultLevels;
 }
 
+
+bool
+gpdb::FRelationHasSupers
+(
+Oid relid )
+{
+    GP_WRAP_START;
+    {
+        return relation_has_supers(relid);
+    }
+    GP_WRAP_END;
+
+    return false;
+}
 // EOF

@@ -83,6 +83,9 @@ extern bool rel_partitioning_is_uniform(Oid rootOid);
 
 extern PartStatus rel_part_status(Oid relid);
 
+extern bool
+relation_has_supers(Oid relid);
+
 extern List *
 cdb_exchange_part_constraints(Relation table, Relation part, Relation cand, 
 							  bool validate, bool is_split, AlterPartitionCmd *pc);

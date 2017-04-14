@@ -794,6 +794,23 @@ EVERY ('2 mons'::interval)
 explain analyze select a.* from mpp8031 a, mpp8031 b where a.oid = b.oid;
 drop table mpp8031;
 
+CREATE TABLE partitioned_table (dk int, interior_pk int, pk int) DISTRIBUTED BY (dk)
+  PARTITION BY RANGE(interior_pk)
+    SUBPARTITION BY RANGE(pk)
+      SUBPARTITION TEMPLATE (END(10), START(10))
+  (END(10), END(20));
+CREATE INDEX idx_partitioned_table ON partitioned_table(pk);
+INSERT INTO partitioned_table SELECT i, i, i FROM generate_series(1, 19) AS i;
+
+EXPLAIN SELECT * FROM partitioned_table WHERE pk < 12;
+SELECT * FROM partitioned_table WHERE pk < 12;
+
+EXPLAIN SELECT * FROM partitioned_table_1_prt_1_2_prt_1 WHERE pk < 3;
+SELECT * FROM partitioned_table_1_prt_1_2_prt_1 WHERE pk < 3;
+
+EXPLAIN SELECT * FROM partitioned_table_1_prt_1 WHERE pk < 3;
+SELECT * FROM partitioned_table_1_prt_1 WHERE pk < 3;
+
 -- CLEANUP
 -- start_ignore
 drop schema if exists bfv_partition;

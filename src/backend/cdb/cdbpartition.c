@@ -194,8 +194,6 @@ get_pprule_from_ATC(Relation rel, AlterTableCmd *cmd);
 static List*
 get_partition_rules(PartitionNode *pn);
 
-static bool
-relation_has_supers(Oid relid);
 
 static NewConstraint *
 constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
@@ -8589,7 +8587,7 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 }
 
 
-static bool
+bool
 relation_has_supers(Oid relid)
 {
 	ScanKeyData	scankey;
