@@ -2171,6 +2171,7 @@ _copyFlattenedSubLink(FlattenedSubLink *from)
 	COPY_BITMAPSET_FIELD(lefthand);
 	COPY_BITMAPSET_FIELD(righthand);
 	COPY_NODE_FIELD(quals);
+	COPY_SCALAR_FIELD(try_join_unique);	/* CDB */
 	
 	return newnode;
 }
@@ -2191,6 +2192,7 @@ _copySpecialJoinInfo(SpecialJoinInfo *from)
 	COPY_SCALAR_FIELD(lhs_strict);
 	COPY_SCALAR_FIELD(delay_upper_joins);
 	COPY_NODE_FIELD(join_quals);
+	COPY_SCALAR_FIELD(try_join_unique);	/* CDB */
 	
 	return newnode;
 }
