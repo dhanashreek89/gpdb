@@ -49,7 +49,8 @@ typedef struct reduce_outer_joins_state
 static Node *pull_up_sublinks_jointree_recurse(PlannerInfo *root, Node *jtnode,
 								  Relids *relids);
 static Node *pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
-							  Relids available_rels, Node **jtlink);
+							  Node **jtlink1, Relids available_rels1,
+							  Node **jtlink2, Relids available_rels2);
 static void pull_up_fromlist_subqueries(PlannerInfo    *root,
                                         List          **inout_fromlist,
 				                        bool            below_outer_join);
@@ -175,8 +176,8 @@ pull_up_sublinks_jointree_recurse(PlannerInfo *root, Node *jtnode,
 		/* Set up a link representing the rebuilt jointree */
 		jtlink = (Node *) newf;
 		/* Now process qual --- all children are available for use */
-		newf->quals = pull_up_sublinks_qual_recurse(root, f->quals, frelids,
-													&jtlink);
+		newf->quals = pull_up_sublinks_qual_recurse(root, f->quals,
+													&jtlink, frelids, NULL, NULL);
 
 		/*
 		 * Note that the result will be either newf, or a stack of JoinExprs
@@ -226,9 +227,10 @@ pull_up_sublinks_jointree_recurse(PlannerInfo *root, Node *jtnode,
 			 * which that's okay.
 			 */
 			j->quals = pull_up_sublinks_qual_recurse(root, j->quals,
+													 &jtlink,
 													 bms_union(leftrelids,
 															   rightrelids),
-													 &jtlink);
+													 NULL, NULL);
 		}
 
 		/*
@@ -260,7 +262,8 @@ pull_up_sublinks_jointree_recurse(PlannerInfo *root, Node *jtnode,
  */
 static Node *
 pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
-							  Relids available_rels, Node **jtlink)
+							  Node **jtlink1, Relids available_rels1,
+							  Node **jtlink2, Relids available_rels2)
 {
 	if (node == NULL)
 		return NULL;
@@ -273,48 +276,117 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 		/* Is it a convertible ANY or EXISTS clause? */
 		if (sublink->subLinkType == ANY_SUBLINK)
 		{
-			j = convert_ANY_sublink_to_join(root, sublink, available_rels);
-			if (j)
+			if((j = convert_ANY_sublink_to_join(root, sublink, available_rels1)) != NULL)
 			{
-				/* Yes; recursively process what we pulled up */
+				/* Yes; insert the new join node into the join tree */
+				j->larg = *jtlink1;
+				*jtlink1 = (Node *) j;
+				/* Recursively process pulled-up jointree nodes */
 				j->rarg = pull_up_sublinks_jointree_recurse(root,
 															j->rarg,
 															&child_rels);
-				/* Any inserted joins get stacked onto j->rarg */
+				/*
+ 				 * Now recursively process the pulled-up quals.  Any inserted
+ 				 * joins can get stacked onto either j->larg or j->rarg,
+ 				 * depending on which rels they reference.
+ 				 */
 				j->quals = pull_up_sublinks_qual_recurse(root,
 														 j->quals,
-														 child_rels,
-														 &j->rarg);
-				/* Now insert the new join node into the join tree */
-				j->larg = *jtlink;
-				*jtlink = (Node *) j;
+														 &j->larg,
+														 available_rels1,
+														 &j->rarg,
+														 child_rels);
 				/* and return NULL representing constant TRUE */
+				return NULL;
+			}
+			if (available_rels2 != NULL &&
+ 				(j = convert_ANY_sublink_to_join(root, sublink,
+ 												 available_rels2)) != NULL)
+			{
+				/* Yes; insert the new join node into the join tree */
+				j->larg = *jtlink2;
+				*jtlink2 = (Node *) j;
+				/* Recursively process pulled-up jointree nodes */
+				/* Yes; insert the new join node into the join tree */
+				j->larg = *jtlink2;
+				*jtlink2 = (Node *) j;
+				/* Recursively process pulled-up jointree nodes */
+				j->rarg = pull_up_sublinks_jointree_recurse(root,
+															j->rarg,
+															&child_rels);
+				/*
+				 * Now recursively process the pulled-up quals.  Any inserted
+				 * joins can get stacked onto either j->larg or j->rarg,
+				 * depending on which rels they reference.
+				 */
+				j->quals = pull_up_sublinks_qual_recurse(root,
+														 j->quals,
+														 &j->larg,
+														 available_rels2,
+														 &j->rarg,
+														 child_rels);
+				/* Return NULL representing constant TRUE */
 				return NULL;
 			}
 		}
 		else if (sublink->subLinkType == EXISTS_SUBLINK)
 		{
 			Node* subst;
-			subst = convert_EXISTS_sublink_to_join(root, sublink, false, available_rels);
+			subst = convert_EXISTS_sublink_to_join(root, sublink, false, available_rels1);
 			if (subst && IsA(subst, JoinExpr))
 			{
 				j = (JoinExpr *) subst;
-                                /* Yes; recursively process what we pulled up */
-                                j->rarg = pull_up_sublinks_jointree_recurse(root,
-                                                                                                                        j->rarg,
-                                                                                                                        &child_rels);
-                                /* Pulled-up ANY/EXISTS quals can use those rels too */
-                                child_rels = bms_add_members(child_rels, available_rels);
-                                /* ... and any inserted joins get stacked onto j->rarg */
-                                j->quals = pull_up_sublinks_qual_recurse(root,
-                                                                                                                 j->quals,
-                                                                                                                 child_rels,
-                                                                                                                 &j->rarg);
-                                /* Now insert the new join node into the join tree */
-				j->larg = *jtlink;
-				*jtlink = (Node *) j;
-				/* and return NULL representing constant TRUE */
+				/* Yes; insert the new join node into the join tree */
+				j->larg = *jtlink1;
+				*jtlink1 = (Node *) j;
+				/* Recursively process pulled-up jointree nodes */
+				j->rarg = pull_up_sublinks_jointree_recurse(root,
+															j->rarg,
+															&child_rels);
+				/*
+				 * Now recursively process the pulled-up quals.  Any inserted
+				 * joins can get stacked onto either j->larg or j->rarg,
+				 * depending on which rels they reference.
+				 */
+				j->quals = pull_up_sublinks_qual_recurse(root,
+														 j->quals,
+														 &j->larg,
+														 available_rels1,
+														 &j->rarg,
+														 child_rels);
+				/* Return NULL representing constant TRUE */
 				return NULL;
+			}
+			if (available_rels2 != NULL)
+			{
+				subst = convert_EXISTS_sublink_to_join(root, sublink, false,
+													   available_rels2);
+				if (subst && IsA(subst, JoinExpr))
+				{
+					j = (JoinExpr *) subst;
+					/* Yes; insert the new join node into the join tree */
+					j->larg = *jtlink2;
+					*jtlink2 = (Node *) j;
+					/* Recursively process pulled-up jointree nodes */
+					j->rarg = pull_up_sublinks_jointree_recurse(root,
+																j->rarg,
+																&child_rels);
+					/*
+					 * Now recursively process the pulled-up quals.  Any inserted
+					 * joins can get stacked onto either j->larg or j->rarg,
+					 * depending on which rels they reference.
+					 */
+					j->quals = pull_up_sublinks_qual_recurse(root,
+															 j->quals,
+															 &j->larg,
+															 available_rels2,
+															 &j->rarg,
+															 child_rels);
+					/* Return NULL representing constant TRUE */
+					return NULL;
+				}
+				else if(subst)
+					return subst;
 			}
 			else if(subst)
 				return subst;
@@ -325,6 +397,9 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 			j = convert_IN_to_antijoin(root, sublink);
 			if (j)
 			{
+				/* Now insert the new join node into the join tree */
+				j->larg = *jtlink1;
+				*jtlink1 = (Node *) j;
 				/* Yes; recursively process what we pulled up */
 				j->rarg = pull_up_sublinks_jointree_recurse(root,
 															j->rarg,
@@ -332,11 +407,9 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 				/* Any inserted joins get stacked onto j->rarg */
 				j->quals = pull_up_sublinks_qual_recurse(root,
 														 j->quals,
+														 &j->rarg,
 														 child_rels,
-														 &j->rarg);
-				/* Now insert the new join node into the join tree */
-				j->larg = *jtlink;
-				*jtlink = (Node *) j;
+														 NULL, NULL);
 				/* and return NULL representing constant TRUE */
 				return NULL;
 			}
@@ -350,46 +423,71 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 		SubLink    *sublink = (SubLink *) get_notclausearg((Expr *) node);
 		Node	   *arg = (Node *) get_notclausearg((Expr *) node);
 		JoinExpr   *j;
+		Relids		child_rels;
 
 		if (sublink && IsA(sublink, SubLink))
 		{
 			if (sublink->subLinkType == EXISTS_SUBLINK)
 			{
 				Node* subst;
-				subst = convert_EXISTS_sublink_to_join(root, sublink, true, available_rels);
+				subst = convert_EXISTS_sublink_to_join(root, sublink, true, available_rels1);
 				if (subst && IsA(subst, JoinExpr))
 				{
 					j = (JoinExpr *) subst;
-					/*
-					 * For the moment, refrain from recursing underneath NOT.
-					 * As in pull_up_sublinks_jointree_recurse, recursing here
-					 * would result in inserting a join underneath an ANTI
-					 * join with which it could not commute, and that could
-					 * easily lead to a worse plan than what we've
-					 * historically generated.
-					 */
-#ifdef NOT_USED
-					/* Yes; recursively process what we pulled up */
-					Relids		child_rels;
-
+					/* Yes; insert the new join node into the join tree */
+					j->larg = *jtlink1;
+					*jtlink1 = (Node *) j;
+					/* Recursively process pulled-up jointree nodes */
 					j->rarg = pull_up_sublinks_jointree_recurse(root,
 																j->rarg,
 																&child_rels);
-					/* Any inserted joins get stacked onto j->rarg */
+					/*
+					 * Now recursively process the pulled-up quals.  Because
+					 * we are underneath a NOT, we can't pull up sublinks
+					 * that reference the left-hand stuff, but it's still
+					 * okay to pull up sublinks referencing j->rarg.
+					 */
 					j->quals = pull_up_sublinks_qual_recurse(root,
 															 j->quals,
+															 &j->rarg,
 															 child_rels,
-															 &j->rarg);
-#endif
-					/* Now insert the new join node into the join tree */
-					j->larg = *jtlink;
-					*jtlink = (Node *) j;
-					/* and return NULL representing constant TRUE */
+															 NULL, NULL);
+					/* Return NULL representing constant TRUE */
 					return NULL;
 				}
-				else if (subst)
+				if (available_rels2 != NULL)
+				{
+					subst = convert_EXISTS_sublink_to_join(root, sublink, true,
+														   available_rels2);
+					if (subst && IsA(subst, JoinExpr))
+					{
+						j = (JoinExpr *) subst;
+						/* Yes; insert the new join node into the join tree */
+						j->larg = *jtlink2;
+						*jtlink2 = (Node *) j;
+						/* Recursively process pulled-up jointree nodes */
+						j->rarg = pull_up_sublinks_jointree_recurse(root,
+																	j->rarg,
+																	&child_rels);
+						/*
+						 * Now recursively process the pulled-up quals.  Because
+						 * we are underneath a NOT, we can't pull up sublinks
+						 * that reference the left-hand stuff, but it's still
+						 * okay to pull up sublinks referencing j->rarg.
+						 */
+						j->quals = pull_up_sublinks_qual_recurse(root,
+																 j->quals,
+																 &j->rarg,
+																 child_rels,
+																 NULL, NULL);
+						/* Return NULL representing constant TRUE */
+						return NULL;
+					}
+					else if(subst)
+						return subst;
+				}
+				else if(subst)
 					return subst;
-
 				/* Else return it unmodified */
 				return node;
 			}
@@ -411,7 +509,7 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 				sublink->subLinkType = ANY_SUBLINK;
 				sublink->testexpr = (Node *) canonicalize_qual(make_notclause((Expr *) sublink->testexpr));
 			}
-			return pull_up_sublinks_qual_recurse(root, (Node *) sublink, available_rels, jtlink);
+			return pull_up_sublinks_qual_recurse(root, (Node *) sublink, jtlink1, available_rels1, jtlink2, available_rels2);
 		}
 
 		else if (not_clause(arg))
@@ -419,14 +517,14 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 			/* NOT NOT (expr) => (expr)  */
 			return (Node *) pull_up_sublinks_qual_recurse(root,
 														 (Node *) get_notclausearg((Expr *) arg),
-														 available_rels, jtlink);
+														 jtlink1, available_rels1, jtlink2, available_rels2);
 		}
 		else if (or_clause(arg))
 		{
 			/* NOT OR (expr1) (expr2) => (expr1) AND (expr2) */
 			return (Node *) pull_up_sublinks_qual_recurse(root,
 														 (Node *) canonicalize_qual((Expr *) node),
-														 available_rels, jtlink);
+														 jtlink1, available_rels1, jtlink2, available_rels2);
 		}
 
 		/* Else return it unmodified */
@@ -445,8 +543,10 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 
 			newclause = pull_up_sublinks_qual_recurse(root,
 													  oldclause,
-													  available_rels,
-													  jtlink);
+													  jtlink1,
+													  available_rels1,
+													  jtlink2,
+													  available_rels2);
 			if(newclause)
 				newclauses = lappend(newclauses, newclause);
 		}
@@ -475,8 +575,8 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 				if (j)
 				{
 					/* Yes, insert the new join node into the join tree */
-					j->larg = *jtlink;
-					*jtlink = (Node *) j;
+					j->larg = *jtlink1;
+					*jtlink1 = (Node *) j;
 				}
 				return node;
 			}
