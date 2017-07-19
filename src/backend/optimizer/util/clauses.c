@@ -60,6 +60,7 @@ typedef struct
 	bool		transform_stable_funcs;
 	bool		recurse_queries; /* recurse into query structures */
 	bool		recurse_sublink_testexpr; /* recurse into sublink test expressions */
+	bool		estimate;
 	Size        max_size; /* max constant binary size in bytes, 0: no restrictions */
 } eval_const_expressions_context;
 
@@ -2221,6 +2222,7 @@ eval_const_expressions(PlannerInfo *root, Node *node)
 	context.active_fns = NIL;	/* nothing being recursively simplified */
 	context.case_val = NULL;	/* no CASE being examined */
 	context.transform_stable_funcs = true;	/* safe transformations only */
+	context.estimate = false;	/* safe transformations only */
 	context.recurse_queries = false; /* do not recurse into query structures */
 	context.recurse_sublink_testexpr = true;
 	context.max_size = 0;
@@ -2256,6 +2258,7 @@ estimate_expression_value(PlannerInfo *root, Node *node)
 	context.active_fns = NIL;	/* nothing being recursively simplified */
 	context.case_val = NULL;	/* no CASE being examined */
 	context.transform_stable_funcs = true;	/* unsafe transformations OK */
+	context.estimate = true;	/* unsafe transformations OK */
 	context.recurse_queries = false; /* do not recurse into query structures */
 	context.recurse_sublink_testexpr = true;
 	context.max_size = 0;
@@ -3214,7 +3217,7 @@ eval_const_expressions_mutator(Node *node,
 					0);
 	}
 
-	if (IsA(node, PlaceHolderVar) && context->transform_stable_funcs)
+	if (IsA(node, PlaceHolderVar) && context->estimate)
 	{
 		/*
 		 * In estimation mode, just strip the PlaceHolderVar node altogether;

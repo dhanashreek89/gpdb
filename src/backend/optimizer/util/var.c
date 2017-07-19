@@ -33,7 +33,6 @@
 typedef struct
 {
 	Relids		varnos;
-	int			sublevels_up;
 } pull_varnos_context;
 
 typedef struct
@@ -73,6 +72,7 @@ static bool contain_var_clause_walker(Node *node, void *context);
 static bool contain_vars_of_level_walker(Node *node, int *sublevels_up);
 static bool locate_var_of_level_walker(Node *node,
 						   locate_var_of_level_context *context);
+static inline Relids pull_varnos_of_level(Node *node, int levelsup);
 static bool pull_var_clause_walker(Node *node,
 					   pull_var_clause_context *context);
 static Node *flatten_join_alias_vars_mutator(Node *node,
@@ -93,7 +93,7 @@ typedef struct Cdb_walk_vars_context
     Cdb_walk_vars_callback_Var      	callback_var;
     Cdb_walk_vars_callback_Aggref   	callback_aggref;
     Cdb_walk_vars_callback_CurrentOf    callback_currentof;
-	Cdb_walk_vars_callback_placeholdervar callback_placeholdervar;
+    Cdb_walk_vars_callback_placeholdervar callback_placeholdervar;
     void                           	   *context;
     int                             	sublevelsup;
 } Cdb_walk_vars_context;
@@ -118,9 +118,9 @@ cdb_walk_vars_walker(Node *node, void *wvwcontext)
         ctx->callback_currentof != NULL)
         return ctx->callback_currentof((CurrentOfExpr *)node, ctx->context, ctx->sublevelsup);
 	
-	if (IsA(node, PlaceHolderVar) &&
-		ctx->callback_placeholdervar != NULL)
-		return ctx->callback_placeholdervar((PlaceHolderVar *)node, ctx->context, ctx->sublevelsup);
+    if (IsA(node, PlaceHolderVar) &&
+        ctx->callback_placeholdervar != NULL)
+        return ctx->callback_placeholdervar((PlaceHolderVar *)node, ctx->context, ctx->sublevelsup);
 	
     if (IsA(node, Query))
 	{
@@ -140,7 +140,7 @@ cdb_walk_vars(Node                         *node,
               Cdb_walk_vars_callback_Var    callback_var,
               Cdb_walk_vars_callback_Aggref callback_aggref,
               Cdb_walk_vars_callback_CurrentOf callback_currentof,
-			  Cdb_walk_vars_callback_placeholdervar callback_placeholdervar,
+              Cdb_walk_vars_callback_placeholdervar callback_placeholdervar,
               void                         *context,
               int                           levelsup)
 {
@@ -149,7 +149,7 @@ cdb_walk_vars(Node                         *node,
     ctx.callback_var = callback_var;
     ctx.callback_aggref = callback_aggref;
     ctx.callback_currentof = callback_currentof;
-	ctx.callback_placeholdervar = callback_placeholdervar;
+    ctx.callback_placeholdervar = callback_placeholdervar;
     ctx.context = context;
     ctx.sublevelsup = levelsup;
 
@@ -169,18 +169,16 @@ pull_varnos_cbPlaceHolderVar(PlaceHolderVar *phv, void *context, int sublevelsup
 	 * But if it is variable-free, use the PHV's syntactic relids.
 	 */
 
-	pull_varnos_context subcontext;
+	Relids all_varnos;
 	pull_varnos_context *pcontext = (pull_varnos_context *) context;
 	
-	subcontext.varnos = NULL;
-	subcontext.sublevels_up = sublevelsup;
-	(void) cdb_walk_vars_walker((Node *) phv->phexpr, &subcontext);
+	all_varnos = pull_varnos_of_level((Node*) phv->phexpr, sublevelsup);
 	
-	if (bms_is_empty(subcontext.varnos) &&
-		phv->phlevelsup == pcontext->sublevels_up)
+	if (bms_is_empty(all_varnos) &&
+		phv->phlevelsup == sublevelsup)
 		pcontext->varnos = bms_add_members(pcontext->varnos, phv->phrels);
 	else
-		pcontext->varnos = bms_join(pcontext->varnos, subcontext.varnos);
+		pcontext->varnos = bms_join(pcontext->varnos, all_varnos);
 	return false;
 }
 
@@ -528,8 +526,24 @@ contain_vars_of_level_or_above_cbAggref(Aggref *aggref, void *unused, int sublev
                          contain_vars_of_level_or_above_cbAggref,
 						 NULL,
                          NULL,
-                         NULL,
+                         NULL, // 8.4-9.0-MERGE_FIXME: Can arguments of Aggref contain PlaceHolderVars ?
                          sublevelsup);
+}
+
+bool
+contain_vars_of_level_or_above_cbPlaceHolderVar(PlaceHolderVar *placeholdervar, void *unused, int sublevelsup)
+{
+	if(placeholdervar->phlevelsup >= sublevelsup)
+		return true;
+
+	/* visit placeholder's contained expression */
+	return cdb_walk_vars((Node*)placeholdervar->phexpr,
+						 contain_vars_of_level_or_above_cbVar,
+						 contain_vars_of_level_or_above_cbAggref,
+						 NULL,
+						 contain_vars_of_level_or_above_cbPlaceHolderVar,
+						 NULL,
+						 sublevelsup);
 }
 
 bool
@@ -539,39 +553,9 @@ contain_vars_of_level_or_above(Node *node, int levelsup)
                          contain_vars_of_level_or_above_cbVar,
                          contain_vars_of_level_or_above_cbAggref,
 						 NULL,
-                         NULL,
+                         contain_vars_of_level_or_above_cbPlaceHolderVar,
                          NULL,
                          levelsup);
-}
-
-static bool
-find_minimum_var_level_cbPlaceHolderVar(PlaceHolderVar   *var,
-							 void  *context,
-							 int    sublevelsup)
-{
-	
-	int			phlevelsup = var->phlevelsup;
-	
-	/* convert levelsup to frame of reference of original query */
-	phlevelsup -= sublevelsup;
-	/* ignore local vars of subqueries */
-	find_minimum_var_level_context *pcontext = (find_minimum_var_level_context *) context;
-	if (phlevelsup >= 0)
-	{
-		if (pcontext->min_varlevel < 0 ||
-			pcontext->min_varlevel > phlevelsup)
-		{
-			pcontext->min_varlevel = phlevelsup;
-			
-			/*
-			 * As soon as we find a local variable, we can abort the tree
-			 * traversal, since min_varlevel is then certainly 0.
-			 */
-			if (phlevelsup == 0)
-				return true;
-		}
-	}
-	return false;
 }
 
 /*
@@ -656,6 +640,42 @@ find_minimum_var_level_cbAggref(Aggref *aggref,
                          NULL,
                          ctx,
                          sublevelsup);
+}
+
+static bool
+find_minimum_var_level_cbPlaceHolderVar(PlaceHolderVar   *placeholdervar,
+										void  *context,
+										int    sublevelsup)
+{
+	int			phlevelsup = placeholdervar->phlevelsup;
+
+	/* convert levelsup to frame of reference of original query */
+	phlevelsup -= sublevelsup;
+	/* ignore local vars of subqueries */
+	find_minimum_var_level_context *ctx = (find_minimum_var_level_context *) context;
+	if (phlevelsup >= 0)
+	{
+		if (ctx->min_varlevel < 0 ||
+			ctx->min_varlevel > phlevelsup)
+		{
+			ctx->min_varlevel = phlevelsup;
+
+			/*
+			 * As soon as we find a local variable, we can abort the tree
+			 * traversal, since min_varlevel is then certainly 0.
+			 */
+			if (phlevelsup == 0)
+				return true;
+		}
+	}
+	/* visit the contained expression */
+	return cdb_walk_vars((Node *) placeholdervar->phexpr,
+						 find_minimum_var_level_cbVar,
+						 find_minimum_var_level_cbAggref,
+						 NULL,  // 8.4-9.0-MERGE_FIXME: Can PlaceHolder expression have CurrentOf ?
+						 find_minimum_var_level_cbPlaceHolderVar,
+						 ctx,
+						 sublevelsup);
 }
 
 int

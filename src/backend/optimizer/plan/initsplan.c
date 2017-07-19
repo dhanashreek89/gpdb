@@ -182,12 +182,12 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars, Relids where_needed)
 		
 		if (IsA(node, Var))
 		{
-			Var		   *var = (Var *) lfirst(temp);
+			Var		   *var = (Var *) node;
 			RelOptInfo *rel = find_base_rel(root, var->varno);
-			int			attrno = var->varattno;
+			int			attno = var->varattno;
 			
 			/* Pseudo column? */
-			if (attrno <= FirstLowInvalidHeapAttributeNumber)
+			if (attno <= FirstLowInvalidHeapAttributeNumber)
 			{
 				CdbRelColumnInfo *rci = cdb_find_pseudo_column(root, var);
 				
@@ -205,15 +205,15 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars, Relids where_needed)
 			}
 			
 			/* System-defined attribute, whole row, or user-defined attribute */
-			Assert(attrno >= rel->min_attr && attrno <= rel->max_attr);
-			attrno -= rel->min_attr;
-			if (bms_is_empty(rel->attr_needed[attrno]))
+			Assert(attno >= rel->min_attr && attno <= rel->max_attr);
+			attno -= rel->min_attr;
+			if (rel->attr_needed[attno] == NULL)
 			{
 				/* Variable not yet requested, so add to reltargetlist */
 				/* XXX is copyObject necessary here? */
 				rel->reltargetlist = lappend(rel->reltargetlist, copyObject(var));
 			}
-			rel->attr_needed[attrno] = bms_add_members(rel->attr_needed[attrno],
+			rel->attr_needed[attno] = bms_add_members(rel->attr_needed[attno],
 													   where_needed);
 		}
 		else if (IsA(node, PlaceHolderVar))

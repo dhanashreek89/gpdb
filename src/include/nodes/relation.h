@@ -1471,7 +1471,7 @@ typedef struct InnerIndexscanInfo
 typedef struct PlaceHolderVar
 {
 	Expr		xpr;
-	Expr	   *phexpr;			/* the represented expression */
+	Expr		*phexpr;			/* the represented expression */
 	Relids		phrels;			/* base relids syntactically within expr src */
 	Index		phid;			/* ID for PHV (unique within planner run) */
 	Index		phlevelsup;		/* > 0 if PHV belongs to outer query */
