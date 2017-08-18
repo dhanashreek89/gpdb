@@ -262,9 +262,24 @@ CTranslatorRelcacheToDXL::PdrgpmdidRelIndexes
 		// root of partitioned table: aggregate index information across different parts
 		plIndexOids = PlIndexOidsPartTable(rel);
 	}
-	else  
+	else if(!gpdb::FRelPartIsInterior(rel->rd_id))
 	{
-		// interior or leaf partition: do not consider indexes
+		// leaf partition: obtain the index it gets from root and
+		// index defined only on itself
+		Oid part_root = gpdb::OidRootPartition(rel->rd_id);
+		Relation root_rel = gpdb::RelGetRelation(part_root);
+		plIndexOids = PlIndexOidsPartTable(root_rel);
+
+		if (NULL == plIndexOids) // no index defined on the root
+			plIndexOids = gpdb::PlRelationIndexes(rel);
+		else
+			plIndexOids = gpdb::PlConcat(plIndexOids, gpdb::PlRelationIndexes(rel));
+
+		gpdb::CloseRelation(root_rel);
+	}
+	else
+	{
+		// interior partition: do not consider indexes
 		return pdrgpmdidIndexes;
 	}
 	
@@ -981,10 +996,15 @@ CTranslatorRelcacheToDXL::Pmdindex
 		GPOS_ASSERT (NULL != pgIndex);
 
 		OID oidRel = pgIndex->indrelid;
+		OID oidRootRel;
+		CMDIdGPDB *pmdidRootRel = NULL;
+		const IMDRelation *pmdrootrel = NULL;
 
 		if (gpdb::FLeafPartition(oidRel))
 		{
-			oidRel = gpdb::OidRootPartition(oidRel);
+			oidRootRel = gpdb::OidRootPartition(oidRel);
+			pmdidRootRel = GPOS_NEW(pmp) CMDIdGPDB(oidRootRel);
+			pmdrootrel = pmda->Pmdrel(pmdidRootRel);
 		}
 #ifdef FAULT_INJECTOR
 		gpdb::OptTasksFaultInjector(OptRelcacheTranslatorCatalogAccess);
@@ -996,18 +1016,19 @@ CTranslatorRelcacheToDXL::Pmdindex
 	
 		if (pmdrel->FPartitioned())
 		{
-			LogicalIndexes *plgidx = gpdb::Plgidx(oidRel);
-			GPOS_ASSERT(NULL != plgidx);
+			LogicalIndexes *plgidx = gpdb::Plgidx(oidRootRel);
 
-			IMDIndex *pmdindex = PmdindexPartTable(pmp, pmda, pmdidIndex, pmdrel, plgidx);
+			IMDIndex *pmdindex = PmdindexPartTable(pmp, pmda, pmdidIndex, pmdrootrel, plgidx);
+			if (NULL != pmdindex)
+			{
+				// cleanup
+				pmdidRootRel->Release();
+				pmdidRel->Release();
+				gpdb::GPDBFree(plgidx);
+				gpdb::CloseRelation(relIndex);
 
-			// cleanup
-			pmdidRel->Release();
-	
-			gpdb::GPDBFree(plgidx);
-			gpdb::CloseRelation(relIndex);
-
-			return pmdindex;
+				return pmdindex;
+			}
 		}
 	
 		emdindt = IMDIndex::EmdindBtree;
@@ -1023,6 +1044,7 @@ CTranslatorRelcacheToDXL::Pmdindex
 		CWStringDynamic *pstrName = CDXLUtils::PstrFromSz(pmp, szIndexName);
 		pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrName);
 		GPOS_DELETE(pstrName);
+		pmdidRootRel->Release();
 		pmdidRel->Release();
 		gpdb::CloseRelation(relIndex);
 	}
@@ -1102,7 +1124,7 @@ CTranslatorRelcacheToDXL::PmdindexPartTable
 	LogicalIndexInfo *pidxinfo = PidxinfoLookup(plind, oid);
 	if (NULL == pidxinfo)
 	{
-		 GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, pmdidIndex->Wsz());
+		 return NULL;
 	}
 	
 	return PmdindexPartTable(pmp, pmda, pidxinfo, pmdidIndex, pmdrel);
