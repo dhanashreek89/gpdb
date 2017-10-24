@@ -2262,6 +2262,19 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 		pdxltrctxOut
 		);
 
+	ListCell *plc;
+
+	foreach (plc, pplan->targetlist)
+	{
+		TargetEntry *pte = (TargetEntry *) lfirst(plc);
+		if (IsA(pte->expr, WindowFunc))
+		{
+			WindowFunc *pwinfunc = (WindowFunc *) pte->expr;
+			pwindow->winref = pwinfunc->winref;
+			break;
+		}
+	}
+
 	pplan->lefttree = pplanChild;
 	pplan->nMotionNodes = pplanChild->nMotionNodes;
 

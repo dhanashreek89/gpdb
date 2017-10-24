@@ -447,6 +447,7 @@ CTranslatorDXLToScalar::PaggrefFromDXLNodeScAggref
 	paggref->aggdistinct = NIL;
 	paggref->agglevelsup = 0;
 	paggref->location = -1;
+	paggref->aggkind = 'n';
 
 	CMDIdGPDB *pmdidAgg = GPOS_NEW(m_pmp) CMDIdGPDB(paggref->aggfnoid);
 	const IMDAggregate *pmdagg = m_pmda->Pmdagg(pmdidAgg);
