@@ -493,12 +493,12 @@ CTranslatorDXLToScalar::PaggrefFromDXLNodeScAggref
 	// translate each DXL argument
 	List *argExprs = PlistTranslateScalarChildren(paggref->args, pdxlnAggref, pmapcidvar);
 
-	int attno = 1;
+	int attno;
 	paggref->args = NIL;
 	ListCell *plc;
-	ForEach (plc, argExprs)
+	ForEachWithCount (plc, argExprs, attno)
 	{
-		TargetEntry *pteNew = gpdb::PteMakeTargetEntry((Expr *) lfirst(plc), attno, NULL, false);
+		TargetEntry *pteNew = gpdb::PteMakeTargetEntry((Expr *) lfirst(plc), attno + 1, NULL, false);
 		paggref->args = gpdb::PlAppendElement(paggref->args, pteNew);
 	}
 
