@@ -4909,6 +4909,21 @@ make_motion(PlannerInfo *root, Plan *lefttree, List *sortPathKeys, bool useExecu
 		}
 #endif
 	}
+	else if (IsA(lefttree, Sort))
+	{
+		/*
+		 * For situations where we are generating a GATHER MOTION over
+		 * a SORT node but without sortPathKeys we still need to
+		 * generate a GATHER MOTION with Merge Keys.  For instance,
+		 * select distinct b, sum(c) over() from foo order by b;
+		 */
+		Sort	   *sort = (Sort *) lefttree;
+
+		node->numSortCols = sort->numCols;
+		node->sortColIdx = sort->sortColIdx;
+		node->sortOperators = sort->sortOperators;
+		node->nullsFirst = sort->nullsFirst;
+	}
 	node->sendSorted = (node->numSortCols > 0);
 
 	plan->extParam = bms_copy(lefttree->extParam);
