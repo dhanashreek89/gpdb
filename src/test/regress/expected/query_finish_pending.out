@@ -67,13 +67,12 @@ NOTICE:  Success:
  t
 (1 row)
 
-select COUNT(i2) over(partition by i1)
-from testsisc
-LIMIT 2;
- count 
--------
-     1
-     1
+with cte as (select i2 from testsisc order by i2)
+select * from cte c1, cte c2 limit 2;
+ i2 | i2 
+----+----
+  0 |  0
+  0 |  0
 (2 rows)
 
 select gp_inject_fault('execshare_input_next', 'status', 2);
@@ -102,13 +101,12 @@ NOTICE:  Success:
  t
 (1 row)
 
-select COUNT(i2) over(partition by i1)
-from testsisc
-LIMIT 2;
- count 
--------
-     1
-     1
+with cte as (select i2 from testsisc order by i2)
+select * from cte c1, cte c2 limit 2;
+ i2 | i2 
+----+----
+  0 |  0
+  0 |  0
 (2 rows)
 
 select gp_inject_fault('execshare_input_next', 'status', 2);
