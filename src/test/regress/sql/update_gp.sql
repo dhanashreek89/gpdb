@@ -1,3 +1,7 @@
+-- GPDB_84_MERGE_FIXME: we changed the optimizer expected plan to a planner
+-- fallback below. Undo that once
+-- https://github.com/greenplum-db/gporca/pull/263 is resolved
+
 -- Test DELETE and UPDATE on an inherited table.
 -- The special aspect of this table is that the inherited table has
 -- a different distribution key. 'p' table's distribution key matches
