@@ -267,11 +267,18 @@ select count_operator('select * from (select * from p1 union all select * from p
 
 select count_operator('select * from (select * from p1 union select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 select count_operator('select * from (select * from p1 except all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
 
 select count_operator('select * from (select * from p1 except select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
 
 select count_operator('select * from (select * from p1 intersect all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 select count_operator('select * from (select * from p1 union select * from p2 union all select * from p3) as p_all, t where p_all.b=t.b;','Partition Selector');
 
@@ -279,9 +286,16 @@ select count_operator('select * from (select * from p1 union select * from p2 un
 
 select count_operator('select * from (select * from p1 union select * from p union all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 select count_operator('select * from (select * from p1 union select * from p2 intersect all select * from p3) as p_all, t where p_all.b=t.b;','Partition Selector');
 
 select count_operator('select * from (select * from p1 union select * from p intersect all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 -- CLEANUP
 -- start_ignore
