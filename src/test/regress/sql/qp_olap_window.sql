@@ -3,6 +3,9 @@
 --
 
 -- start_ignore
+-- GPDB_84_MERGE_FIXME
+set optimizer to off;
+
 -- count number of certain operators in a given plan
 create language plpythonu;
 create or replace function ow_count_operator(query text, operator text) returns int as

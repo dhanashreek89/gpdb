@@ -645,6 +645,12 @@ copy qp_misc_jiras.tbl5223_sales_fact from stdin;
 2-8-08	2	26.25
 \.
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing executor error
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 SELECT
   product, year, sales, 
   100*(1.0 - sales/(sum(sales) over (w))) as "% sales_growth"
@@ -660,6 +666,9 @@ FROM
 window w as (partition by product order by year*12+month
              range between 12 preceding and 1 preceding)
 order by year, product, sales; -- mvd 1,2->4
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 drop table qp_misc_jiras.tbl5223_sales_fact;
 CREATE VIEW qp_misc_jiras.tbl4255_simple_v as SELECT 1 as value;
@@ -701,9 +710,16 @@ insert into qp_misc_jiras.tbl5246_sale values
 
 
 
---The following query shouldn't crash and error out
-
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  Wrong results as GPORCA produces incorrect plan
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 explain select cn, count(*) over (order by dt range between '2 day'::interval preceding and 2 preceding) from qp_misc_jiras.tbl5246_sale;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 drop table qp_misc_jiras.tbl5246_sale;
 
@@ -1436,7 +1452,13 @@ DROP TABLE IF EXISTS qp_misc_jiras.one_of_every_data_type;
 
 create table qp_misc_jiras.tbl7553_test (i int, j int);
 insert into qp_misc_jiras.tbl7553_test values(1,2);
-
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
+-- with error: CTranslatorQueryToDXL.cpp:3864: Failed assertion: fResult.
+-- Tracker Story: #153070478
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 explain select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a));
 
 select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
@@ -1445,6 +1467,9 @@ explain select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping 
 
 select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
 
+-- start_ignore
+reset optimizer;
+-- end_ignore
 drop table qp_misc_jiras.tbl7553_test;
 
 -- Check that a table created with CTAS "inherits" the distribution key from
@@ -1858,20 +1883,24 @@ reset gp_enable_agg_distinct_pruning;
 
 
 set enable_groupagg=off;
--- both queries should use hashagg
 -- start_ignore
--- GPDB_84_MERGE_FIXME: Need to fix to generate hashagg instead of groupagg
+-- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
+-- due to following error: GPDB Expression type: Distinct aggregates not supported in DXL
+-- Tracker Story: #153040298
+-- Re-enable ORCA once the issue is fixed.
+set optimizer=off;
 -- end_ignore
+-- both queries should use hashagg
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
 
 set enable_groupagg=on;
 -- first query should use groupagg, and second one - hashagg
--- start_ignore
--- GPDB_84_MERGE_FIXME: Need to fix to generate hashagg instead of groupagg
--- end_ignore
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 drop table qp_misc_jiras.tbl5994_test;
 CREATE TABLE qp_misc_jiras.tbl_8205 (
@@ -2534,12 +2563,30 @@ alter table qp_misc_jiras.tbl13409_test set with (reorganize='true');
 create table qp_misc_jiras.tbl13879_1 (a int) distributed by (a);
 insert into qp_misc_jiras.tbl13879_1 select generate_series(1,10);
 select * from qp_misc_jiras.tbl13879_1;
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing executor error
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 select a, max(a) over (order by a range between current row and 2 following) as max from qp_misc_jiras.tbl13879_1;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 create table qp_misc_jiras.tbl13879_2 (a numeric) distributed by (a);
 create table qp_misc_jiras.tbl13879_2 (a numeric) distributed by (a);
 insert into qp_misc_jiras.tbl13879_2 select generate_series(1,10);
 select * from qp_misc_jiras.tbl13879_2;
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing executor error
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 select a, max(a) over (order by a range between current row and 2 following) as max from qp_misc_jiras.tbl13879_2;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 drop table qp_misc_jiras.tbl13879_1;
 drop table qp_misc_jiras.tbl13879_2;
 create table qp_misc_jiras.esc176_1 (id integer, seq integer, val double precision, clickdate timestamp without time zone) distributed by (id);
@@ -2547,10 +2594,20 @@ insert into qp_misc_jiras.esc176_1 values (1,1,0.2,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,2,0.1,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,3,0.5,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,4,0.7,CURRENT_TIMESTAMP);
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing executor error
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 select id, seq, sum (val) over (partition by id order by clickdate range between interval '0 seconds' following and interval '1000 seconds' following) from qp_misc_jiras.esc176_1;
 select id, seq, sum (val) over (partition by id order by clickdate range between interval '0 seconds' preceding and interval '1000 seconds' following) from qp_misc_jiras.esc176_1;
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 0 following and 10 following), val from qp_misc_jiras.esc176_1;
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 10 preceding and 0 preceding), val from qp_misc_jiras.esc176_1;
+-- start_ignore
+reset optimizer;
+-- end_ignore
+
 insert into qp_misc_jiras.esc176_1 values (1,9,0.3,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,10,0.4,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,11,0.6, CURRENT_TIMESTAMP);
@@ -2560,10 +2617,19 @@ insert into qp_misc_jiras.esc176_1 select * from qp_misc_jiras.esc176_1;
 insert into qp_misc_jiras.esc176_1 values (1,9,0.3, CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,10,0.4,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,11,0.6,CURRENT_TIMESTAMP);
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing executor error
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 select id, seq, sum (val) over (partition by id order by clickdate range between interval '0 seconds' following and interval '1000 seconds' following) from qp_misc_jiras.esc176_1;
 select id, seq, sum (val) over (partition by id order by clickdate range between interval '0 seconds' preceding and interval '1000 seconds' following) from qp_misc_jiras.esc176_1;
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 0 following and 10 following), val from qp_misc_jiras.esc176_1;
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 10 preceding and 0 preceding), val from qp_misc_jiras.esc176_1;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 drop table qp_misc_jiras.esc176_1;
 create table qp_misc_jiras.tbl13491_h(a int,str varchar)distributed by (a);
 alter table qp_misc_jiras.tbl13491_h alter column str set storage external;

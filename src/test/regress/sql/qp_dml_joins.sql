@@ -1061,7 +1061,14 @@ rollback;
 
 --Delete with sub-query
 SELECT COUNT(*) FROM dml_heap_s;
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 DELETE FROM dml_heap_s WHERE a = (SELECT dml_heap_r.a FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.a = dml_heap_s.a);
+-- start_ignore
+reset optimizer;
+-- end_ignore
 SELECT COUNT(*) FROM dml_heap_s;
 
 --Delete from table
@@ -1186,7 +1193,14 @@ rollback;
 
 --Delete with sub-query
 SELECT COUNT(*) FROM dml_heap_pt_s;
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 DELETE FROM dml_heap_pt_s WHERE a = (SELECT dml_heap_pt_r.a FROM dml_heap_pt_r,dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.a);
+-- start_ignore
+reset optimizer;
+-- end_ignore
 SELECT COUNT(*) FROM dml_heap_pt_s;
 
 --Insert with generate_series
@@ -1456,6 +1470,10 @@ rollback;
 --Update and case
 begin;
 SELECT COUNT(*) FROM dml_heap_pt_r WHERE a = 20 ;
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 UPDATE dml_heap_pt_r SET a = (SELECT case when c = 'r' then MAX(b) else 100 end FROM dml_heap_pt_r GROUP BY c) ;
 SELECT COUNT(*) FROM dml_heap_pt_r WHERE a = 20 ;
 rollback;
@@ -1469,6 +1487,9 @@ SELECT SUM(a) FROM dml_heap_pt_r;
 SELECT SUM(b) FROM dml_heap_pt_r;
 UPDATE dml_heap_pt_r SET b = (SELECT dml_heap_pt_r.b FROM dml_heap_pt_r,dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.a );
 SELECT SUM(b) FROM dml_heap_pt_r;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 --Negative test - Update WHERE join returns more than one tuple with different values.
 CREATE TABLE dml_heap_pt_u as SELECT i as a, i as b  FROM generate_series(1,10)i;
@@ -1727,6 +1748,10 @@ SELECT COUNT(*) FROM dml_heap_r WHERE a = 100 ;
 rollback;
 
 --Negative test - Update with sub-query returning more than one row
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 SELECT SUM(a) FROM dml_heap_r;
 UPDATE dml_heap_r SET a = ( SELECT DISTINCT(b) FROM dml_heap_s ) FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.a;
 SELECT SUM(a) FROM dml_heap_r;
@@ -1735,6 +1760,9 @@ SELECT SUM(a) FROM dml_heap_r;
 SELECT SUM(b) FROM dml_heap_r;
 UPDATE dml_heap_r SET b = (SELECT dml_heap_r.b FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.a = dml_heap_s.a );
 SELECT SUM(b) FROM dml_heap_r;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 --Negative test - Update with aggregates
 SELECT SUM(b) FROM dml_heap_r;

@@ -396,12 +396,21 @@ SELECT cte2.e,cte.f FROM cte,cte2 where cte.e = cte2.e
 
 SELECT * FROM cte_view ORDER BY 1;
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing wrong results
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 -- @description test18: CTE with WINDOW function
 WITH CTE(a,b) AS
 (SELECT a,d FROM foo, bar WHERE foo.a = bar.d),
 CTE1(e,f) AS
 ( SELECT foo.a, rank() OVER (PARTITION BY foo.b ORDER BY CTE.a) FROM foo,CTE )
 SELECT * FROM CTE1,CTE WHERE CTE.a = CTE1.f and CTE.a = 2 ORDER BY 1;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 -- @description test19a :CTE with set operations [UNION]
 WITH ctemax(a,b) AS
@@ -855,6 +864,12 @@ SELECT code FROM testtab t WHERE (
     SELECT count(*) FROM cte WHERE cte.code::text=t.code::text
 ) = 1 ORDER BY 1;
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME:  GPORCA produces incorrect plan causing wrong results
+-- Refer QP tracker story #153039698
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 -- @description MPP-19436
 WITH t AS (
  SELECT e.*,f.*
@@ -868,6 +883,9 @@ WITH t(a,b,d) AS (
   SELECT foo.a,foo.b,bar.d FROM foo,bar WHERE foo.a = bar.d
 )
 SELECT t.b,avg(t.a), rank() OVER (PARTITION BY t.a ORDER BY t.a) FROM foo,t GROUP BY foo.a,foo.b,t.b,t.a ORDER BY 1,2,3 LIMIT 5;
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 WITH t(a,b,d) AS (
   SELECT foo.a,foo.b,bar.d FROM foo,bar WHERE foo.a = bar.d

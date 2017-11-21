@@ -2398,9 +2398,15 @@ SELECT COUNT(*) FROM dml_heap_s;
    113
 (1 row)
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 DELETE FROM dml_heap_s WHERE a = (SELECT dml_heap_r.a FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.a = dml_heap_s.a);
-ERROR:  One or more assertions failed
-DETAIL:  Expected no more than one row to be returned by expression
+ERROR:  more than one row returned by a subquery used as an expression
+-- start_ignore
+reset optimizer;
+-- end_ignore
 SELECT COUNT(*) FROM dml_heap_s;
  count 
 -------
@@ -2703,9 +2709,15 @@ SELECT COUNT(*) FROM dml_heap_pt_s;
    115
 (1 row)
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 DELETE FROM dml_heap_pt_s WHERE a = (SELECT dml_heap_pt_r.a FROM dml_heap_pt_r,dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.a);
-ERROR:  One or more assertions failed
-DETAIL:  Expected no more than one row to be returned by expression
+ERROR:  more than one row returned by a subquery used as an expression
+-- start_ignore
+reset optimizer;
+-- end_ignore
 SELECT COUNT(*) FROM dml_heap_pt_s;
  count 
 -------
@@ -3421,13 +3433,14 @@ SELECT COUNT(*) FROM dml_heap_pt_r WHERE a = 20 ;
      1
 (1 row)
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 UPDATE dml_heap_pt_r SET a = (SELECT case when c = 'r' then MAX(b) else 100 end FROM dml_heap_pt_r GROUP BY c) ;
+ERROR:  Cannot parallelize an UPDATE statement that updates the distribution columns
 SELECT COUNT(*) FROM dml_heap_pt_r WHERE a = 20 ;
- count 
--------
-     0
-(1 row)
-
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
 rollback;
 --Negative test - Update with sub-query returning more than one row
 SELECT SUM(a) FROM dml_heap_pt_r;
@@ -3437,8 +3450,7 @@ SELECT SUM(a) FROM dml_heap_pt_r;
 (1 row)
 
 UPDATE dml_heap_pt_r SET a = ( SELECT DISTINCT(b) FROM dml_heap_pt_s ) FROM dml_heap_pt_s WHERE dml_heap_pt_r.b = dml_heap_pt_s.a;
-ERROR:  One or more assertions failed
-DETAIL:  Expected no more than one row to be returned by expression
+ERROR:  Cannot parallelize an UPDATE statement that updates the distribution columns
 SELECT SUM(a) FROM dml_heap_pt_r;
  sum  
 ------
@@ -3453,14 +3465,16 @@ SELECT SUM(b) FROM dml_heap_pt_r;
 (1 row)
 
 UPDATE dml_heap_pt_r SET b = (SELECT dml_heap_pt_r.b FROM dml_heap_pt_r,dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.a );
-ERROR:  One or more assertions failed
-DETAIL:  Expected no more than one row to be returned by expression
+ERROR:  more than one row returned by a subquery used as an expression
 SELECT SUM(b) FROM dml_heap_pt_r;
   sum  
 -------
  15150
 (1 row)
 
+-- start_ignore
+reset optimizer;
+-- end_ignore
 --Negative test - Update WHERE join returns more than one tuple with different values.
 CREATE TABLE dml_heap_pt_u as SELECT i as a, i as b  FROM generate_series(1,10)i;
 CREATE TABLE dml_heap_pt_v as SELECT i as a, i as b FROM generate_series(1,10)i;
@@ -4128,6 +4142,10 @@ SELECT COUNT(*) FROM dml_heap_r WHERE a = 100 ;
 
 rollback;
 --Negative test - Update with sub-query returning more than one row
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: re-enable GPORCA once PR (https://github.com/greenplum-db/gporca/pull/263) is merged.
+set optimizer=off;
+-- end_ignore
 SELECT SUM(a) FROM dml_heap_r;
  sum  
 ------
@@ -4135,8 +4153,7 @@ SELECT SUM(a) FROM dml_heap_r;
 (1 row)
 
 UPDATE dml_heap_r SET a = ( SELECT DISTINCT(b) FROM dml_heap_s ) FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.a;
-ERROR:  One or more assertions failed
-DETAIL:  Expected no more than one row to be returned by expression
+ERROR:  Cannot parallelize an UPDATE statement that updates the distribution columns
 SELECT SUM(a) FROM dml_heap_r;
  sum  
 ------
@@ -4151,15 +4168,17 @@ SELECT SUM(b) FROM dml_heap_r;
 (1 row)
 
 UPDATE dml_heap_r SET b = (SELECT dml_heap_r.b FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.a = dml_heap_s.a );
-ERROR:  One or more assertions failed
-DETAIL:  Expected no more than one row to be returned by expression
+ERROR:  more than one row returned by a subquery used as an expression
 SELECT SUM(b) FROM dml_heap_r;
  sum  
 ------
  5050
 (1 row)
 
---Negative test - Update with aggregates 
+-- start_ignore
+reset optimizer;
+-- end_ignore
+--Negative test - Update with aggregates
 SELECT SUM(b) FROM dml_heap_r;
  sum  
 ------
@@ -4167,7 +4186,7 @@ SELECT SUM(b) FROM dml_heap_r;
 (1 row)
 
 UPDATE dml_heap_r SET b = MAX(dml_heap_s.b) FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.a;
-ERROR:  cannot use aggregate function in UPDATE
+ERROR:  aggregate functions are not allowed in UPDATE
 LINE 1: UPDATE dml_heap_r SET b = MAX(dml_heap_s.b) FROM dml_heap_s ...
                                   ^
 SELECT SUM(b) FROM dml_heap_r;

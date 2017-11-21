@@ -44,6 +44,13 @@ SELECT t.a,t.d, count(*) over () AS window
 FROM t
 GROUP BY t.a,t.d ORDER BY t.a,t.d LIMIT 2;
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: Wrong results as GPORCA produces incorrect plan
+-- Refer QP tracker story #153039698
+-- re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
+
 --
 -- With clause select test 2
 --
@@ -68,6 +75,10 @@ t WHERE cup.e < 10
 GROUP BY cup.c,cup.d, cup.e ,t.d, t.b
 ORDER BY 1,2,3,4
 LIMIT 10;
+
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 --
 -- With clause select test 4
@@ -128,6 +139,13 @@ SELECT t.a,t.d, count(*) over () AS window
 FROM t
 GROUP BY t.a,t.d ORDER BY t.a,t.d LIMIT 2;
 
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: Wrong results as GPORCA produces incorrect plan
+-- Refer QP tracker story #153039698
+-- re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
+
 --
 -- With clause select test 2
 --
@@ -136,6 +154,10 @@ WITH t(a,b,d) AS
   SELECT bfv_cte_foo.a,bfv_cte_foo.b,bfv_cte_bar.d FROM bfv_cte_foo,bfv_cte_bar WHERE bfv_cte_foo.a = bfv_cte_bar.d
 )
 SELECT t.b,avg(t.a), rank() OVER (PARTITION BY t.a ORDER BY t.a) FROM bfv_cte_foo,t GROUP BY bfv_cte_foo.a,bfv_cte_foo.b,t.b,t.a ORDER BY 1,2,3 LIMIT 5;
+
+-- start_ignore
+reset optimizer;
+-- end_ignore
 
 --
 -- With clause select test 3
