@@ -1910,7 +1910,7 @@ CTranslatorDXLToPlStmt::PrteFromDXLTVF
 	palias->colnames = NIL;
 
 	// get function alias
-	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxlop->Pstr()->Wsz());
+	palias->aliasname = pstrdup(pdxlop->Pstr()->Sz());
 
 	// project list
 	CDXLNode *pdxlnPrL = (*pdxlnTVF)[EdxltsIndexProjList];
@@ -1922,7 +1922,7 @@ CTranslatorDXLToPlStmt::PrteFromDXLTVF
 		CDXLNode *pdxlnPrElem = (*pdxlnPrL)[ul];
 		CDXLScalarProjElem *pdxlopPrEl = CDXLScalarProjElem::PdxlopConvert(pdxlnPrElem->Pdxlop());
 
-		CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlopPrEl->PmdnameAlias()->Pstr()->Wsz());
+		CHAR *szColName = pstrdup(pdxlopPrEl->PmdnameAlias()->Pstr()->Sz());
 
 		Value *pvalColName = gpdb::PvalMakeString(szColName);
 		palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
@@ -1995,7 +1995,7 @@ CTranslatorDXLToPlStmt::PrteFromDXLValueScan
 		CDXLNode *pdxlnPrElem = (*pdxlnPrL)[ul];
 		CDXLScalarProjElem *pdxlopPrEl = CDXLScalarProjElem::PdxlopConvert(pdxlnPrElem->Pdxlop());
 
-		CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlopPrEl->PmdnameAlias()->Pstr()->Wsz());
+		CHAR *szColName = pstrdup(pdxlopPrEl->PmdnameAlias()->Pstr()->Sz());
 
 		Value *pvalColName = gpdb::PvalMakeString(szColName);
 		palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
@@ -2662,12 +2662,12 @@ CTranslatorDXLToPlStmt::PplanResultHashFilters
 				GPOS_ASSERT(NULL != pexpr);
 
 				// create a target entry for the hash filter
-				CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+				CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 				TargetEntry *pte = gpdb::PteMakeTargetEntry
 											(
 											pexpr, 
 											gpdb::UlListLength(pplan->targetlist) + 1, 
-											CTranslatorUtils::SzFromWsz(strUnnamedCol.Wsz()), 
+											pstrdup(strUnnamedCol.Sz()),
 											false /* resjunk */
 											);
 				pplan->targetlist = gpdb::PlAppendElement(pplan->targetlist, pte);
@@ -3138,7 +3138,7 @@ CTranslatorDXLToPlStmt::PsubqscanFromDXLSubqScan
 	palias->colnames = NIL;
 
 	// get table alias
-	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxlopSubqscan->Pmdname()->Pstr()->Wsz());
+	palias->aliasname = pstrdup(pdxlopSubqscan->Pmdname()->Pstr()->Sz());
 
 	// get column names from child project list
 	CDXLTranslateContextBaseTable dxltrctxbt(m_pmp);
@@ -3548,7 +3548,7 @@ CTranslatorDXLToPlStmt::PappendFromDXLAppend
 
 		TargetEntry *pte = MakeNode(TargetEntry);
 		pte->expr = (Expr *) pvar;
-		pte->resname = CTranslatorUtils::SzFromWsz(pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
+		pte->resname = pstrdup(pdxlopPrel->PmdnameAlias()->Pstr()->Sz());
 		pte->resno = attno;
 
 		// add column mapping to output translation context
@@ -3941,7 +3941,7 @@ CTranslatorDXLToPlStmt::PshscanFromDXLCTEConsumer
 
 		Var *pvar = gpdb::PvarMakeVar(OUTER, (AttrNumber) (ul + 1), oidType, pdxlopScIdent->ITypeModifier(),  0	/* varlevelsup */);
 
-		CHAR *szResname = CTranslatorUtils::SzFromWsz(pdxlopPrE->PmdnameAlias()->Pstr()->Wsz());
+		CHAR *szResname = pstrdup(pdxlopPrE->PmdnameAlias()->Pstr()->Sz());
 		TargetEntry *pte = gpdb::PteMakeTargetEntry((Expr *) pvar, (AttrNumber) (ul + 1), szResname, false /* resjunk */);
 		pplan->targetlist = gpdb::PlAppendElement(pplan->targetlist, pte);
 
@@ -4778,7 +4778,7 @@ CTranslatorDXLToPlStmt::PrteFromTblDescr
 	palias->colnames = NIL;
 
 	// get table alias
-	palias->aliasname = CTranslatorUtils::SzFromWsz(pdxltabdesc->Pmdname()->Pstr()->Wsz());
+	palias->aliasname = pstrdup(pdxltabdesc->Pmdname()->Pstr()->Sz());
 
 	// get column names
 	const ULONG ulArity = pdxltabdesc->UlArity();
@@ -4805,7 +4805,7 @@ CTranslatorDXLToPlStmt::PrteFromTblDescr
 			}
 			
 			// non-system attribute
-			CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlcd->Pmdname()->Pstr()->Wsz());
+			CHAR *szColName = pstrdup(pdxlcd->Pmdname()->Pstr()->Sz());
 			Value *pvalColName = gpdb::PvalMakeString(szColName);
 
 			palias->colnames = gpdb::PlAppendElement(palias->colnames, pvalColName);
@@ -4890,7 +4890,7 @@ CTranslatorDXLToPlStmt::PlTargetListFromProjList
 
 		TargetEntry *pte = MakeNode(TargetEntry);
 		pte->expr = pexpr;
-		pte->resname = CTranslatorUtils::SzFromWsz(pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
+		pte->resname = pstrdup(pdxlopPrel->PmdnameAlias()->Pstr()->Sz());
 		pte->resno = (AttrNumber) (ul + 1);
 
 		if (IsA(pexpr, Var))
@@ -4995,7 +4995,7 @@ CTranslatorDXLToPlStmt::PlTargetListWithDroppedCols
 			ulLastTLElem++;
 		}
 		
-		CHAR *szName = CTranslatorUtils::SzFromWsz(pmdcol->Mdname().Pstr()->Wsz());
+		CHAR *szName = pstrdup(pmdcol->Mdname().Pstr()->Sz());
 		TargetEntry *pteNew = gpdb::PteMakeTargetEntry(pexpr, ulResno, szName, false /*resjunk*/);
 		plResult = gpdb::PlAppendElement(plResult, pteNew);
 		ulResno++;
@@ -5071,7 +5071,7 @@ CTranslatorDXLToPlStmt::PlTargetListForHashNode
 		pvar->varnoold = idxVarnoold;
 		pvar->varoattno = attnoOld;
 
-		CHAR *szResname = CTranslatorUtils::SzFromWsz(pdxlopPrel->PmdnameAlias()->Pstr()->Wsz());
+		CHAR *szResname = pstrdup(pdxlopPrel->PmdnameAlias()->Pstr()->Sz());
 
 		TargetEntry *pte = gpdb::PteMakeTargetEntry
 							(
@@ -5605,17 +5605,17 @@ CTranslatorDXLToPlStmt::PintoclFromCtas
 	IntoClause *pintocl = MakeNode(IntoClause);
 	pintocl->rel = MakeNode(RangeVar);
 	pintocl->rel->istemp = pdxlop->FTemporary();
-	pintocl->rel->relname = CTranslatorUtils::SzFromWsz(pdxlop->Pmdname()->Pstr()->Wsz());
+	pintocl->rel->relname = pstrdup(pdxlop->Pmdname()->Pstr()->Sz());
 	pintocl->rel->schemaname = NULL;
 	if (NULL != pdxlop->PmdnameSchema())
 	{
-		pintocl->rel->schemaname = CTranslatorUtils::SzFromWsz(pdxlop->PmdnameSchema()->Pstr()->Wsz());
+		pintocl->rel->schemaname = pstrdup(pdxlop->PmdnameSchema()->Pstr()->Sz());
 	}
 	
 	CDXLCtasStorageOptions *pdxlctasopt = pdxlop->Pdxlctasopt();
 	if (NULL != pdxlctasopt->PmdnameTablespace())
 	{
-		pintocl->tableSpaceName = CTranslatorUtils::SzFromWsz(pdxlop->Pdxlctasopt()->PmdnameTablespace()->Pstr()->Wsz());
+		pintocl->tableSpaceName = pstrdup(pdxlop->Pdxlctasopt()->PmdnameTablespace()->Pstr()->Sz());
 	}
 	
 	pintocl->onCommit = (OnCommitAction) pdxlctasopt->Ectascommit(); 
@@ -5629,7 +5629,7 @@ CTranslatorDXLToPlStmt::PintoclFromCtas
 	{
 		const CDXLColDescr *pdxlcd = (*pdrgpdxlcd)[ul];
 
-		CHAR *szColName = CTranslatorUtils::SzFromWsz(pdxlcd->Pmdname()->Pstr()->Wsz());
+		CHAR *szColName = pstrdup(pdxlcd->Pmdname()->Pstr()->Sz());
 		
 		ColumnDef *pcoldef = MakeNode(ColumnDef);
 		pcoldef->colname = szColName;

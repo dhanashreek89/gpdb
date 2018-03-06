@@ -230,7 +230,7 @@ CTranslatorRelcacheToDXL::PmdnameRel
 {
 	GPOS_ASSERT(NULL != rel);
 	CHAR *szRelName = NameStr(rel->rd_rel->relname);
-	CWStringDynamic *pstrRelName = CDXLUtils::PstrFromSz(pmp, szRelName);
+	CStringStatic *pstrRelName = GPOS_NEW(pmp) CStringStatic(szRelName, 1024);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrRelName);
 	GPOS_DELETE(pstrRelName);
 	return pmdname;
@@ -1000,7 +1000,8 @@ CTranslatorRelcacheToDXL::AddSystemColumns
 		}
 
 		// get system name for that attribute
-		const CWStringConst *pstrSysColName = CTranslatorUtils::PstrSystemColName(attno);
+		const CWStringConst *pstrSysColNameW = CTranslatorUtils::PstrSystemColName(attno);
+		const CStringStatic *pstrSysColName = GPOS_NEW(pmp) CStringStatic(CDXLUtils::SzFromWsz(pmp, pstrSysColNameW->Wsz()), 1024);
 		GPOS_ASSERT(NULL != pstrSysColName);
 
 		// copy string into column name
@@ -1121,7 +1122,7 @@ CTranslatorRelcacheToDXL::Pmdindex
 		
 		// get the index name
 		CHAR *szIndexName = NameStr(relIndex->rd_rel->relname);
-		CWStringDynamic *pstrName = CDXLUtils::PstrFromSz(pmp, szIndexName);
+		CStringStatic *pstrName = GPOS_NEW(pmp) CStringStatic(szIndexName, 1024);
 		pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrName);
 		GPOS_DELETE(pstrName);
 		pmdidRel->Release();
@@ -1824,7 +1825,7 @@ CTranslatorRelcacheToDXL::Pmdfunc
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, pmdid->Wsz());
 	}
 
-	CWStringDynamic *pstrFuncName = CDXLUtils::PstrFromSz(pmp, szName);
+	CStringStatic *pstrFuncName = GPOS_NEW(pmp) CStringStatic(szName, 1024);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrFuncName);
 
 	// CMDName ctor created a copy of the string
@@ -1908,7 +1909,7 @@ CTranslatorRelcacheToDXL::Pmdagg
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, pmdid->Wsz());
 	}
 
-	CWStringDynamic *pstrAggName = CDXLUtils::PstrFromSz(pmp, szName);
+	CStringStatic *pstrAggName = GPOS_NEW(pmp) CStringStatic(szName, 1024);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrAggName);
 
 	// CMDName ctor created a copy of the string
@@ -1975,7 +1976,7 @@ CTranslatorRelcacheToDXL::Pmdtrigger
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, pmdid->Wsz());
 	}
 
-	CWStringDynamic *pstrTriggerName = CDXLUtils::PstrFromSz(pmp, szName);
+	CStringStatic *pstrTriggerName = GPOS_NEW(pmp) CStringStatic(szName, 1024);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrTriggerName);
 	GPOS_DELETE(pstrTriggerName);
 
@@ -2034,7 +2035,7 @@ CTranslatorRelcacheToDXL::Pmdcheckconstraint
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound, pmdid->Wsz());
 	}
-	CWStringDynamic *pstrCheckConstraintName = CDXLUtils::PstrFromSz(pmp, szName);
+	CStringStatic *pstrCheckConstraintName = GPOS_NEW(pmp) CStringStatic(szName, 1024);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrCheckConstraintName);
 	GPOS_DELETE(pstrCheckConstraintName);
 
@@ -2127,7 +2128,7 @@ CTranslatorRelcacheToDXL::PmdnameType
 	CHAR *szTypeName = gpdb::SzTypeName(oidType);
 	GPOS_ASSERT(NULL != szTypeName);
 
-	CWStringDynamic *pstrName = CDXLUtils::PstrFromSz(pmp, szTypeName);
+	CStringStatic *pstrName = GPOS_NEW(pmp) CStringStatic(szTypeName, 1024);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrName);
 
 	// cleanup
@@ -2263,7 +2264,7 @@ CTranslatorRelcacheToDXL::PimdobjRelStats
 	{
 		// get rel name
 		CHAR *szRelName = NameStr(rel->rd_rel->relname);
-		CWStringDynamic *pstrRelName = CDXLUtils::PstrFromSz(pmp, szRelName);
+		CStringStatic *pstrRelName = GPOS_NEW(pmp) CStringStatic(szRelName, 1024);
 		pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrRelName);
 		// CMDName ctor created a copy of the string
 		GPOS_DELETE(pstrRelName);
@@ -2416,8 +2417,8 @@ CTranslatorRelcacheToDXL::PimdobjColStats
 		mcvSlot.nvalues = 0;
 
 		char msgbuf[NAMEDATALEN * 2 + 100];
-		snprintf(msgbuf, sizeof(msgbuf), "The number of most common values and frequencies do not match on column %ls of table %ls.",
-				pmdcol->Mdname().Pstr()->Wsz(), pmdrel->Mdname().Pstr()->Wsz());
+		snprintf(msgbuf, sizeof(msgbuf), "The number of most common values and frequencies do not match on column %s of table %s.",
+				pmdcol->Mdname().Pstr()->Sz(), pmdrel->Mdname().Pstr()->Sz());
 		GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION,
 					   LOG,
 					   msgbuf,

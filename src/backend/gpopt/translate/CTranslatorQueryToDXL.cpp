@@ -925,7 +925,7 @@ CTranslatorQueryToDXL::Pdrgpctasopt
 	ForEach (plc, plOptions)
 	{
 		DefElem *pdefelem = (DefElem *) lfirst(plc);
-		CWStringDynamic *pstrName = CDXLUtils::PstrFromSz(m_pmp, pdefelem->defname);
+		CWStringDynamic *pstrName = CDXLUtils::PWstrFromSz(m_pmp, pdefelem->defname);
 		CWStringDynamic *pstrValue = NULL;
 		
 		BOOL fNullArg = (NULL == pdefelem->arg);
@@ -1002,7 +1002,7 @@ CTranslatorQueryToDXL::PstrExtractOptionValue
 
 	CHAR *szValue = gpdb::SzDefGetString(pdefelem);
 
-	CWStringDynamic *pstrResult = CDXLUtils::PstrFromSz(m_pmp, szValue);
+	CWStringDynamic *pstrResult = CDXLUtils::PWstrFromSz(m_pmp, szValue);
 	
 	return pstrResult;
 }
@@ -1477,7 +1477,7 @@ CTranslatorQueryToDXL::Pdrgpdxlws
 
 		if (NULL != pwindowspec->name)
 		{
-			CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pwindowspec->name);
+			CStringStatic *pstrAlias = GPOS_NEW(m_pmp) CStringStatic(pwindowspec->name, 1024);
 			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 			GPOS_DELETE(pstrAlias);
 		}
@@ -1777,8 +1777,11 @@ CTranslatorQueryToDXL::PdrgpdxlnSortCol
 		CMDIdGPDB *pmdidScOp = GPOS_NEW(m_pmp) CMDIdGPDB(oid);
 		const IMDScalarOp *pmdscop = m_pmda->Pmdscop(pmdidScOp);
 
-		const CWStringConst *pstr = pmdscop->Mdname().Pstr();
+		CWStringDynamic *pwstrdyn = GPOS_NEW(m_pmp) CWStringDynamic(m_pmp);
+		pwstrdyn->AppendFormat(GPOS_WSZ_LIT("%s"), (pmdscop->Mdname().Pstr())->Sz());
+		const CWStringConst *pstr = GPOS_NEW(m_pmp) CWStringConst(m_pmp, pwstrdyn->Wsz());
 		GPOS_ASSERT(NULL != pstr);
+		GPOS_DELETE(pwstrdyn);
 
 		CDXLScalarSortCol *pdxlop = GPOS_NEW(m_pmp) CDXLScalarSortCol
 												(
@@ -2366,7 +2369,7 @@ CTranslatorQueryToDXL::PdxlnConstTableGet() const
 	const CMDIdGPDB *pmdid = CMDIdGPDB::PmdidConvert(pmdtypeBool->Pmdid());
 
 	// empty column name
-	CWStringConst strUnnamedCol(GPOS_WSZ_LIT(""));
+	CStringStatic strUnnamedCol((CHAR *)"", 1024);
 	CMDName *pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
 	CDXLColDescr *pdxlcd = GPOS_NEW(m_pmp) CDXLColDescr
 										(
@@ -2762,7 +2765,7 @@ CTranslatorQueryToDXL::PdxlnSetOpChild
 	}
 
 	CHAR *sz = (CHAR*) gpdb::SzNodeToString(const_cast<Node*>(pnodeChild));
-	CWStringDynamic *pstr = CDXLUtils::PstrFromSz(m_pmp, sz);
+	CWStringDynamic *pstr = CDXLUtils::PWstrFromSz(m_pmp, sz);
 
 	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, pstr->Wsz());
 	return NULL;
@@ -2916,7 +2919,7 @@ CTranslatorQueryToDXL::PdxlnFromGPDBFromClauseEntry
 	}
 
 	CHAR *sz = (CHAR*) gpdb::SzNodeToString(const_cast<Node*>(pnode));
-	CWStringDynamic *pstr = CDXLUtils::PstrFromSz(m_pmp, sz);
+	CWStringDynamic *pstr = CDXLUtils::PWstrFromSz(m_pmp, sz);
 
 	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, pstr->Wsz());
 
@@ -3081,7 +3084,7 @@ CTranslatorQueryToDXL::PdxlnFromValues
 
 				ulColId = m_pidgtorCol->UlNextId();
 
-				CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, szColName);
+				CStringStatic *pstrAlias = GPOS_NEW(m_pmp) CStringStatic(szColName, 1024);
 				CMDName *pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 				GPOS_DELETE(pstrAlias);
 
@@ -3113,7 +3116,7 @@ CTranslatorQueryToDXL::PdxlnFromValues
 
 				if (0 == ulTuplePos)
 				{
-					CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, szColName);
+					CStringStatic *pstrAlias = GPOS_NEW(m_pmp) CStringStatic(szColName, 1024);
 					CMDName *pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 					GPOS_DELETE(pstrAlias);
 
@@ -3728,12 +3731,12 @@ CTranslatorQueryToDXL::PdxlnProjectNullsForGroupingSets
 
 			if (NULL == pte->resname)
 			{
-				CWStringConst strUnnamedCol(GPOS_WSZ_LIT("grouping"));
+				CStringStatic strUnnamedCol((CHAR *)"grouping", 1024);
 				pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
 			}
 			else
 			{
-				CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pte->resname);
+				CStringStatic *pstrAlias =GPOS_NEW(m_pmp) CStringStatic(pte->resname, 1024);
 				pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 				GPOS_DELETE(pstrAlias);
 			}
@@ -3816,12 +3819,12 @@ CTranslatorQueryToDXL::PdxlnProjectGroupingFuncs
 
 			if (NULL == pte->resname)
 			{
-				CWStringConst strUnnamedCol(GPOS_WSZ_LIT("grouping"));
+				CStringStatic strUnnamedCol((CHAR *)"grouping", 1024);
 				pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
 			}
 			else
 			{
-				CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pte->resname);
+				CStringStatic *pstrAlias = GPOS_NEW(m_pmp) CStringStatic(pte->resname, 1024);
 				pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 				GPOS_DELETE(pstrAlias);
 			}
@@ -3906,12 +3909,12 @@ CTranslatorQueryToDXL::PdrgpdxlnConstructOutputCols
 		CMDName *pmdname = NULL;
 		if (NULL == pte->resname)
 		{
-			CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+			CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
 		}
 		else
 		{
-			CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pte->resname);
+			CStringStatic *pstrAlias = GPOS_NEW(m_pmp) CStringStatic(pte->resname, 1024);
 			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 			// CName constructor copies string
 			GPOS_DELETE(pstrAlias);
@@ -3966,12 +3969,13 @@ CTranslatorQueryToDXL::PdxlnPrEFromGPDBExpr
 
 	if (NULL == szAliasName)
 	{
-		CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+		CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 		pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
 	}
 	else
 	{
-		CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, szAliasName);
+		CHAR *szAliasNameCopy = pstrdup(szAliasName); /* TODO */
+		CStringStatic *pstrAlias = GPOS_NEW(m_pmp) CStringStatic(szAliasNameCopy, 1024);
 		pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 		GPOS_DELETE(pstrAlias);
 	}

@@ -1197,8 +1197,9 @@ COptTasks::PrintMissingStatsWarning
 	GPOS_ASSERT(NULL != pdrgmdidCol);
 	GPOS_ASSERT(NULL != phsmdidRel);
 
-	CWStringDynamic str(pmp);
-	COstreamString oss(&str);
+	CHAR szBuf[1024];
+	CStringStatic PcssMissingStats(szBuf, 1024);
+//	COstreamString oss(&str);
 
 	const ULONG ulMissingColStats = pdrgmdidCol->UlLength();
 	for (ULONG ul = 0; ul < ulMissingColStats; ul++)
@@ -1216,18 +1217,19 @@ COptTasks::PrintMissingStatsWarning
 			{
 				if (0 != ul)
 				{
-					oss << ", ";
+					PcssMissingStats.AppendBuffer((CHAR *)", ");
 				}
 
 				pmdidRel->AddRef();
 				phsmdidRel->FInsert(pmdidRel);
-				oss << pmdrel->Mdname().Pstr()->Wsz();
+				//oss << pmdrel->Mdname().Pstr()->Sz();
+				PcssMissingStats.AppendBuffer(pmdrel->Mdname().Pstr()->Sz());
 			}
 
 			CMDName mdname = pmdrel->Pmdcol(ulPos)->Mdname();
 
 			char msgbuf[NAMEDATALEN * 2 + 100];
-			snprintf(msgbuf, sizeof(msgbuf), "Missing statistics for column: %s.%s", SzFromWsz(pmdrel->Mdname().Pstr()->Wsz()), SzFromWsz(mdname.Pstr()->Wsz()));
+			snprintf(msgbuf, sizeof(msgbuf), "Missing statistics for column: %s.%s", pmdrel->Mdname().Pstr()->Sz(), mdname.Pstr()->Sz());
 			GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION,
 						   LOG,
 						   msgbuf,
@@ -1239,7 +1241,7 @@ COptTasks::PrintMissingStatsWarning
 	{
 		int length = NAMEDATALEN * phsmdidRel->UlEntries() + 200;
 		char msgbuf[length];
-		snprintf(msgbuf, sizeof(msgbuf), "One or more columns in the following table(s) do not have statistics: %s", SzFromWsz(str.Wsz()));
+		snprintf(msgbuf, sizeof(msgbuf), "One or more columns in the following table(s) do not have statistics: %s", PcssMissingStats.Sz());
 		GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION,
 					   NOTICE,
 					   msgbuf,

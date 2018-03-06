@@ -867,8 +867,7 @@ CQueryMutators::PteAggregateOrPercentileExpr
 		const IMDAggregate *pmdagg = pmda->Pmdagg(pmdidAgg);
 		pmdidAgg->Release();
 
-		const CWStringConst *pstr = pmdagg->Mdname().Pstr();
-		szName = CTranslatorUtils::SzFromWsz(pstr->Wsz());
+		szName = pstrdup(pmdagg->Mdname().Pstr()->Sz());
 	}
 	GPOS_ASSERT(NULL != szName);
 
@@ -1803,14 +1802,14 @@ CQueryMutators::PnodeWindowPrLMutator
 
 		// get the function name and add it to the target list
 		CMDIdGPDB *pmdidFunc = GPOS_NEW(pctxWindowPrLMutator->m_pmp) CMDIdGPDB(pwindowref->winfnoid);
-		const CWStringConst *pstr = CMDAccessorUtils::PstrWindowFuncName(pctxWindowPrLMutator->m_pmda, pmdidFunc);
+		const CStringStatic *pstr = CMDAccessorUtils::PstrWindowFuncName(pctxWindowPrLMutator->m_pmda, pmdidFunc);
 		pmdidFunc->Release();
 
 		TargetEntry *pte = gpdb::PteMakeTargetEntry
 								(
 								(Expr*) gpdb::PvCopyObject(pnode),
 								(AttrNumber) ulResNo,
-								CTranslatorUtils::SzFromWsz(pstr->Wsz()),
+								pstrdup(pstr->Sz()),
 								false /* resjunk */
 								);
 		pctxWindowPrLMutator->m_plTENewGroupByQuery = gpdb::PlAppendElement(pctxWindowPrLMutator->m_plTENewGroupByQuery, pte);
@@ -1836,12 +1835,12 @@ CQueryMutators::PnodeWindowPrLMutator
 		if (NULL == pteFound)
 		{
 			// insert target entry into the target list of the derived table
-			CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+			CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 			TargetEntry *pte = gpdb::PteMakeTargetEntry
 									(
 									(Expr*) gpdb::PvCopyObject(pnode),
 									(AttrNumber) ulResNo,
-									CTranslatorUtils::SzFromWsz(strUnnamedCol.Wsz()),
+									pstrdup(strUnnamedCol.Sz()),
 									false /* resjunk */
 									);
 			pctxWindowPrLMutator->m_plTENewGroupByQuery = gpdb::PlAppendElement(pctxWindowPrLMutator->m_plTENewGroupByQuery, pte);

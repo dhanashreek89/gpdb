@@ -90,7 +90,7 @@ namespace gpdxl
 			CMVCMap	*m_pmvcmap;
 
 			// insert mapping entry
-			void Insert(ULONG, ULONG, INT, ULONG, CWStringBase *pstr);
+			void Insert(ULONG, ULONG, INT, ULONG, CStringStatic *pstr);
 
 			// no copy constructor
 			CMappingVarColId(const CMappingVarColId &);
@@ -119,7 +119,7 @@ namespace gpdxl
 
 			// given a gpdb attribute, return a column name in optimizer world
 			virtual
-			const CWStringBase *PstrColName
+			const CStringStatic *PstrColName
 											(
 											ULONG ulCurrentQueryLevel,
 											const Var *pvar,

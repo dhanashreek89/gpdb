@@ -365,7 +365,7 @@ namespace gpdxl
 
 			// construct a project element with a const NULL expression
 			static
-			CDXLNode *PdxlnPrElNull(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid, ULONG ulColId, const WCHAR *wszColName);
+			CDXLNode *PdxlnPrElNull(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid, ULONG ulColId, const CHAR *wszColName);
 
 			// construct a project element with a const NULL expression
 			static

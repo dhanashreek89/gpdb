@@ -97,7 +97,7 @@ CTranslatorUtils::Pdxlid
 	)
 {
 	const IMDIndex *pmdindex = pmda->Pmdindex(pmdid);
-	const CWStringConst *pstrIndexName = pmdindex->Mdname().Pstr();
+	const CStringStatic *pstrIndexName = pmdindex->Mdname().Pstr();
 	CMDName *pmdnameIdx = GPOS_NEW(pmp) CMDName(pmp, pstrIndexName);
 
 	return GPOS_NEW(pmp) CDXLIndexDescr(pmp, pmdid, pmdnameIdx);
@@ -136,7 +136,7 @@ CTranslatorUtils::Pdxltabdesc
 	const IMDRelation *pmdrel = pmda->Pmdrel(pmdid);
 	
 	// look up table name
-	const CWStringConst *pstrTblName = pmdrel->Mdname().Pstr();
+	const CStringStatic *pstrTblName = pmdrel->Mdname().Pstr();
 	CMDName *pmdnameTbl = GPOS_NEW(pmp) CMDName(pmp, pstrTblName);
 
 	CDXLTableDescr *pdxltabdesc = GPOS_NEW(pmp) CDXLTableDescr(pmp, pmdid, pmdnameTbl, prte->checkAsUser);
@@ -471,7 +471,7 @@ CTranslatorUtils::PdrgdxlcdRecord
 		INT iTypeModifier = lfirst_int(plcColTypeModifier);
 
 		CHAR *szColName = strVal(pvalue);
-		CWStringDynamic *pstrColName = CDXLUtils::PstrFromSz(pmp, szColName);
+		CStringStatic *pstrColName = GPOS_NEW(pmp) CStringStatic(szColName, 1024);
 		CMDName *pmdColName = GPOS_NEW(pmp) CMDName(pmp, pstrColName);
 		GPOS_DELETE(pstrColName);
 
@@ -522,7 +522,7 @@ CTranslatorUtils::PdrgdxlcdRecord
 		Value *pvalue = (Value *) lfirst(plcColName);
 
 		CHAR *szColName = strVal(pvalue);
-		CWStringDynamic *pstrColName = CDXLUtils::PstrFromSz(pmp, szColName);
+		CStringStatic *pstrColName = GPOS_NEW(pmp) CStringStatic(szColName, 1024);
 		CMDName *pmdColName = GPOS_NEW(pmp) CMDName(pmp, pstrColName);
 		GPOS_DELETE(pstrColName);
 
@@ -1696,12 +1696,12 @@ CTranslatorUtils::Pdxlcd
 	CMDName *pmdname = NULL;
 	if (NULL == pte->resname)
 	{
-		CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+		CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 		pmdname = GPOS_NEW(pmp) CMDName(pmp, &strUnnamedCol);
 	}
 	else
 	{
-		CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(pmp, pte->resname);
+		CStringStatic *pstrAlias = GPOS_NEW(pmp) CStringStatic(pte->resname, 1024);
 		pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrAlias);
 		// CName constructor copies string
 		GPOS_DELETE(pstrAlias);
@@ -2385,7 +2385,7 @@ CTranslatorUtils::PdxlnPrElNull
 	GPOS_ASSERT(NULL != pmdcol);
 	GPOS_ASSERT(!pmdcol->FSystemColumn());
 
-	const WCHAR *wszColName = pmdcol->Mdname().Pstr()->Wsz();
+	const CHAR *wszColName = pmdcol->Mdname().Pstr()->Sz();
 	if (!pmdcol->FNullable())
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLNotNullViolation, wszColName);
@@ -2411,10 +2411,10 @@ CTranslatorUtils::PdxlnPrElNull
 	CMDAccessor *pmda,
 	IMDId *pmdid,
 	ULONG ulColId,
-	const WCHAR *wszColName
+	const CHAR *wszColName
 	)
 {
-	CHAR *szColumnName = CDXLUtils::SzFromWsz(pmp, wszColName);
+	CHAR *szColumnName = pstrdup(wszColName);
 	CDXLNode *pdxlnPrE = PdxlnPrElNull(pmp, pmda, pmdid, ulColId, szColumnName);
 
 	GPOS_DELETE_ARRAY(szColumnName);
@@ -2446,12 +2446,12 @@ CTranslatorUtils::PdxlnPrElNull
 
 	if (NULL == szAliasName)
 	{
-		CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+		CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 		pmdnameAlias = GPOS_NEW(pmp) CMDName(pmp, &strUnnamedCol);
 	}
 	else
 	{
-		CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(pmp, szAliasName);
+		CStringStatic *pstrAlias = GPOS_NEW(pmp) CStringStatic(szAliasName, 1024);
 		pmdnameAlias = GPOS_NEW(pmp) CMDName(pmp, pstrAlias);
 		GPOS_DELETE(pstrAlias);
 	}

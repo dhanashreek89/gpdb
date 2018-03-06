@@ -152,7 +152,7 @@ CTranslatorScalarToDXL::PdxlnScIdFromVar
 	}
 
 	// column name
-	const CWStringBase *pstr = pmapvarcolid->PstrColName(m_ulQueryLevel, pvar, m_eplsphoptype);
+	const CStringStatic *pstr = pmapvarcolid->PstrColName(m_ulQueryLevel, pvar, m_eplsphoptype);
 
 	// column id
 	ULONG ulId;
@@ -263,7 +263,7 @@ CTranslatorScalarToDXL::PdxlnScOpFromExpr
 	if (NULL == pf)
 	{
 		CHAR *sz = (CHAR*) gpdb::SzNodeToString(const_cast<Expr*>(pexpr));
-		CWStringDynamic *pstr = CDXLUtils::PstrFromSz(m_pmp, sz);
+		CWStringDynamic *pstr = CDXLUtils::PWstrFromSz(m_pmp, sz);
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion, pstr->Wsz());
 	}
 
@@ -523,8 +523,11 @@ CTranslatorScalarToDXL::PdxlnScArrayCompFromExpr
 	const IMDScalarOp *pmdscop = m_pmda->Pmdscop(pmdidOp);
 	pmdidOp->Release();
 
-	const CWStringConst *pstr = pmdscop->Mdname().Pstr();
+	CWStringDynamic *pwstrdyn = GPOS_NEW(m_pmp) CWStringDynamic(m_pmp);
+	pwstrdyn->AppendFormat(GPOS_WSZ_LIT("%s"), (pmdscop->Mdname().Pstr())->Sz());
+	const CWStringConst *pstr = GPOS_NEW(m_pmp) CWStringConst(m_pmp, pwstrdyn->Wsz());
 	GPOS_ASSERT(NULL != pstr);
+	GPOS_DELETE(pwstrdyn);
 
 	EdxlArrayCompType edxlarraycomptype = Edxlarraycomptypeany;
 
@@ -1513,7 +1516,7 @@ CTranslatorScalarToDXL::PdxlnWindowFrameEdgeVal
 	if (m_fQuery && !IsA(pnode, Var) && !IsA(pnode, Const))
 	{
 		GPOS_ASSERT(NULL != pdxlnNewChildScPrL);
-		CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
+		CStringStatic strUnnamedCol((CHAR *)"?column?", 1024);
 		CMDName *pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
 		ULONG ulPrElId = m_pidgtorCol->UlNextId();
 
@@ -1812,7 +1815,8 @@ CTranslatorScalarToDXL::PdxlnQuantifiedSubqueryFromSublink
 	IMDId *pmdid = GPOS_NEW(m_pmp) CMDIdGPDB(popexpr->opno);
 
 	// get operator name
-	const CWStringConst *pstr = PstrOpName(pmdid);
+	CHAR *opname = CDXLUtils::SzFromWsz(m_pmp, (PstrOpName(pmdid))->Wsz());
+	CStringStatic *pstr = GPOS_NEW(m_pmp) CStringStatic(opname, 1024);
 
 	// translate left hand side of the expression
 	GPOS_ASSERT(NULL != popexpr->args);
@@ -2052,9 +2056,10 @@ CTranslatorScalarToDXL::PstrOpName
 	// get operator name
 	const IMDScalarOp *pmdscop = m_pmda->Pmdscop(pmdid);
 
-	const CWStringConst *pstr = pmdscop->Mdname().Pstr();
+	CWStringDynamic *pstr = GPOS_NEW(m_pmp) CWStringDynamic(m_pmp);
+	pstr->AppendFormat(GPOS_WSZ_LIT("%s"), (pmdscop->Mdname().Pstr())->Sz());
 
-	return pstr;
+	return GPOS_NEW(m_pmp) CWStringConst(m_pmp, pstr->Wsz());
 }
 
 //---------------------------------------------------------------------------

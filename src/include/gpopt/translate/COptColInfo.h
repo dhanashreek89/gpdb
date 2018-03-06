@@ -19,6 +19,7 @@
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
 #include "gpos/utils.h"
+#include "gpos/string/CStringStatic.h"
 
 namespace gpdxl
 {
@@ -40,14 +41,14 @@ namespace gpdxl
 			ULONG m_ulColId;
 
 			// column name
-			CWStringBase *m_pstr;
+			CStringStatic *m_pstr;
 
 			// private copy c'tor
 			COptColInfo(const COptColInfo&);
 
 		public:
 			// ctor
-			COptColInfo(ULONG ulColId, CWStringBase *pstr)
+			COptColInfo(ULONG ulColId, CStringStatic *pstr)
 				: m_ulColId(ulColId), m_pstr(pstr)
 			{
 				GPOS_ASSERT(m_pstr);
@@ -66,7 +67,7 @@ namespace gpdxl
 				return m_ulColId;
 			}
 
-			CWStringBase* PstrColName() const
+			CStringStatic* PstrColName() const
 			{
 				return m_pstr;
 			}

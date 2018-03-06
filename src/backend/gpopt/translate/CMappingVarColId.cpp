@@ -101,7 +101,7 @@ CMappingVarColId::Pgpdbattoptcol
 //		Given a gpdb attribute, return a column name in optimizer world
 //
 //---------------------------------------------------------------------------
-const CWStringBase *
+const CStringStatic *
 CMappingVarColId::PstrColName
 	(
 	ULONG ulCurrentQueryLevel,
@@ -148,7 +148,7 @@ CMappingVarColId::Insert
 	ULONG ulVarNo,
 	INT iAttNo,
 	ULONG ulColId,
-	CWStringBase *pstrColName
+	CStringStatic *pstrColName
 	)
 {
 	// GPDB agg node uses 0 in Var, but that should've been taken care of
@@ -274,7 +274,7 @@ CMappingVarColId::Load
 		Value *pvalue = (Value *) lfirst(plcCol);
 		CHAR *szColName = strVal(pvalue);
 
-		CWStringDynamic *pstrColName = CDXLUtils::PstrFromSz(m_pmp, szColName);
+		CStringStatic *pstrColName = GPOS_NEW(m_pmp) CStringStatic(szColName, 1024);
 
 		this->Insert
 				(
@@ -400,7 +400,7 @@ CMappingVarColId::LoadCTEColumns
 			GPOS_ASSERT(0 < pte->resno);
 			ULONG ulCTEColId = *((*pdrgpulCTEColumns)[ulCTE]);
 			
-			CWStringDynamic *pstrColName = CDXLUtils::PstrFromSz(m_pmp, pte->resname);
+			CStringStatic *pstrColName = GPOS_NEW(m_pmp) CStringStatic(pte->resname, 1024);
 			this->Insert
 					(
 					ulQueryLevel,
@@ -477,7 +477,7 @@ CMappingVarColId::PmapvarcolidCopy
 		{
 			// include all variables defined at same query level or before
 			CGPDBAttInfo *pgpdbattinfoNew = GPOS_NEW(m_pmp) CGPDBAttInfo(pgpdbattinfo->UlQueryLevel(), pgpdbattinfo->UlVarNo(), pgpdbattinfo->IAttNo());
-			COptColInfo *poptcolinfoNew = GPOS_NEW(m_pmp) COptColInfo(poptcolinfo->UlColId(), GPOS_NEW(m_pmp) CWStringConst(m_pmp, poptcolinfo->PstrColName()->Wsz()));
+			COptColInfo *poptcolinfoNew = GPOS_NEW(m_pmp) COptColInfo(poptcolinfo->UlColId(), GPOS_NEW(m_pmp) CStringStatic(poptcolinfo->PstrColName()->Sz(), 1024));
 			pgpdbattinfoNew->AddRef();
 			CGPDBAttOptCol *pgpdbattoptcolNew = GPOS_NEW(m_pmp) CGPDBAttOptCol(pgpdbattinfoNew, poptcolinfoNew);
 
@@ -519,7 +519,7 @@ CMappingVarColId::PmapvarcolidCopy
 		const COptColInfo *poptcolinfo = pgpdbattoptcol->Poptcolinfo();
 
 		CGPDBAttInfo *pgpdbattinfoNew = GPOS_NEW(pmp) CGPDBAttInfo(pgpdbattinfo->UlQueryLevel(), pgpdbattinfo->UlVarNo(), pgpdbattinfo->IAttNo());
-		COptColInfo *poptcolinfoNew = GPOS_NEW(pmp) COptColInfo(poptcolinfo->UlColId(), GPOS_NEW(pmp) CWStringConst(pmp, poptcolinfo->PstrColName()->Wsz()));
+		COptColInfo *poptcolinfoNew = GPOS_NEW(pmp) COptColInfo(poptcolinfo->UlColId(), GPOS_NEW(m_pmp) CStringStatic(poptcolinfo->PstrColName()->Sz(), 1024));
 		pgpdbattinfoNew->AddRef();
 		CGPDBAttOptCol *pgpdbattoptcolNew = GPOS_NEW(pmp) CGPDBAttOptCol(pgpdbattinfoNew, poptcolinfoNew);
 
@@ -575,7 +575,7 @@ CMappingVarColId::PmapvarcolidRemap
 			ulColId = *pulColIdNew;
 		}
 		
-		COptColInfo *poptcolinfoNew = GPOS_NEW(pmp) COptColInfo(ulColId, GPOS_NEW(pmp) CWStringConst(pmp, poptcolinfo->PstrColName()->Wsz()));
+		COptColInfo *poptcolinfoNew = GPOS_NEW(pmp) COptColInfo(ulColId, GPOS_NEW(m_pmp) CStringStatic(poptcolinfo->PstrColName()->Sz(), 1024));
 		pgpdbattinfoNew->AddRef();
 		CGPDBAttOptCol *pgpdbattoptcolNew = GPOS_NEW(pmp) CGPDBAttOptCol(pgpdbattinfoNew, poptcolinfoNew);
 
