@@ -3914,12 +3914,18 @@ CTranslatorQueryToDXL::PdrgpdxlnConstructOutputCols
 		CMDName *pmdname = NULL;
 		if (NULL == pte->resname)
 		{
-			CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
-			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
+			ULONG ullength = clib::UlStrLen((CHAR *) "?column?");
+			BYTE *pba = GPOS_NEW_ARRAY(m_pmp, BYTE, ullength);
+			clib::PvMemCpy(pba, (CHAR *) "?column?", ullength);
+			CWStringDynamic *strUnnamedCol = CDXLUtils::PstrFromByteArray(m_pmp, pba, ullength);
+			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, strUnnamedCol);
 		}
 		else
 		{
-			CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pte->resname);
+			ULONG ullength = clib::UlStrLen(pte->resname);
+			BYTE *pba = GPOS_NEW_ARRAY(m_pmp, BYTE, ullength);
+			clib::PvMemCpy(pba, pte->resname, ullength);
+			CWStringDynamic *pstrAlias = CDXLUtils::PstrFromByteArray(m_pmp, pba, ullength);
 			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 			// CName constructor copies string
 			GPOS_DELETE(pstrAlias);
@@ -3974,12 +3980,19 @@ CTranslatorQueryToDXL::PdxlnPrEFromGPDBExpr
 
 	if (NULL == szAliasName)
 	{
-		CWStringConst strUnnamedCol(GPOS_WSZ_LIT("?column?"));
-		pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, &strUnnamedCol);
+		ULONG ullength = clib::UlStrLen((CHAR *) "?column?");
+		BYTE *pba = GPOS_NEW_ARRAY(m_pmp, BYTE, ullength);
+		clib::PvMemCpy(pba, (CHAR *) "?column?", ullength);
+		CWStringDynamic *strUnnamedCol = CDXLUtils::PstrFromByteArray(m_pmp, pba, ullength);
+		pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, strUnnamedCol);
 	}
 	else
 	{
-		CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, szAliasName);
+		ULONG ullength = clib::UlStrLen(szAliasName);
+		BYTE *pba = GPOS_NEW_ARRAY(m_pmp, BYTE, ullength);
+		clib::PvMemCpy(pba, szAliasName, ullength);
+		CWStringDynamic *pstrAlias = CDXLUtils::PstrFromByteArray(m_pmp, pba, ullength);
+
 		pmdnameAlias = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 		GPOS_DELETE(pstrAlias);
 	}

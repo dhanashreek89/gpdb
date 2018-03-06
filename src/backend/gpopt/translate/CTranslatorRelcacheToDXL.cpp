@@ -230,7 +230,10 @@ CTranslatorRelcacheToDXL::PmdnameRel
 {
 	GPOS_ASSERT(NULL != rel);
 	CHAR *szRelName = NameStr(rel->rd_rel->relname);
-	CWStringDynamic *pstrRelName = CDXLUtils::PstrFromSz(pmp, szRelName);
+	ULONG ullength = clib::UlStrLen(szRelName);
+	BYTE *pba = GPOS_NEW_ARRAY(pmp, BYTE, ullength);
+	clib::PvMemCpy(pba, szRelName, ullength);
+	CWStringDynamic *pstrRelName = CDXLUtils::PstrFromByteArray(pmp, pba, ullength);
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrRelName);
 	GPOS_DELETE(pstrRelName);
 	return pmdname;
@@ -2269,11 +2272,7 @@ CTranslatorRelcacheToDXL::PimdobjRelStats
 	GPOS_TRY
 	{
 		// get rel name
-		CHAR *szRelName = NameStr(rel->rd_rel->relname);
-		CWStringDynamic *pstrRelName = CDXLUtils::PstrFromSz(pmp, szRelName);
-		pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrRelName);
-		// CMDName ctor created a copy of the string
-		GPOS_DELETE(pstrRelName);
+		pmdname = PmdnameRel(pmp, rel);
 
 		BlockNumber pages = 0;
 		GpPolicy *pgppolicy = gpdb::Pdistrpolicy(rel);
