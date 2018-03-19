@@ -974,7 +974,8 @@ create_unique_plan(PlannerInfo *root, UniquePath *best_path)
 								 0, /* rollup_gs_times */
 								 0,
 								 0,
-								 subplan);
+								 subplan,
+								 true);
 	}
 	else
 	{
@@ -5001,7 +5002,7 @@ make_agg(PlannerInfo *root, List *tlist, List *qual,
 		 uint64 input_grouping, uint64 grouping,
 		 int rollupGSTimes,
 		 int numAggs, int transSpace,
-		 Plan *lefttree)
+		 Plan *lefttree, bool isDistinct)
 {
 	Agg		   *node = makeNode(Agg);
 	Plan	   *plan = &node->plan;
@@ -5019,6 +5020,7 @@ make_agg(PlannerInfo *root, List *tlist, List *qual,
 	node->rollupGSTimes = rollupGSTimes;
 	node->lastAgg = false;
 	node->streaming = streaming;
+	node->isDistinct = isDistinct;
 
 	copy_plan_costsize(plan, lefttree); /* only care about copying size */
 

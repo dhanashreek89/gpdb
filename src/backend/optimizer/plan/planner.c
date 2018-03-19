@@ -1894,7 +1894,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 												0, /* rollup_gs_times */
 												agg_counts.numAggs,
 												agg_counts.transitionSpace,
-												result_plan);
+												result_plan,
+												true);
 
 				if (canonical_grpsets != NULL &&
 					canonical_grpsets->grpset_counts != NULL &&
@@ -1961,7 +1962,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 												0, /* rollup_gs_times */
 												agg_counts.numAggs,
 												agg_counts.transitionSpace,
-												result_plan);
+												result_plan, false);
 
 				if (canonical_grpsets != NULL &&
 					canonical_grpsets->grpset_counts != NULL &&
@@ -2415,8 +2416,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			 * loses the GROUP_ID() information, so don't use it if there's a
 			 * GROUP_ID().
 			 */
-			if (use_hashed_distinct && contain_group_id((Node *) result_plan->targetlist))
-				use_hashed_distinct = false;
+//			if (use_hashed_distinct && contain_group_id((Node *) result_plan->targetlist))
+//				use_hashed_distinct = false;
 		}
 
 		/*
@@ -2541,7 +2542,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 											0, /* rollupGSTimes */
 											0,
 											0, /* transSpace */
-											result_plan);
+											result_plan,
+											true);
 			/* Hashed aggregation produces randomly-ordered results */
 			current_pathkeys = NIL;
 		}

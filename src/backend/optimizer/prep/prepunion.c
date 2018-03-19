@@ -816,7 +816,7 @@ make_union_unique(SetOperationStmt *op, Plan *plan,
 								 0, /* rollupGSTimes */
 								 0, /* numAggs */
 								 0, /* transSpace */
-								 plan);
+								 plan, true);
 		/* Hashed aggregation produces randomly-ordered results */
 		*sortClauses = NIL;
 	}

@@ -1727,8 +1727,8 @@ set_upper_references(PlannerGlobal *glob, Plan *plan, int rtoffset)
 		TargetEntry *tle = (TargetEntry *) lfirst(l);
 		Node	   *newexpr;
 
-		if (IsA(tle->expr, Grouping) ||
-				IsA(tle->expr, GroupId))
+		if (!(IsA(plan, Agg) && ((Agg *) plan)->isDistinct) && (IsA(tle->expr, Grouping) ||
+				IsA(tle->expr, GroupId)))
 			newexpr = copyObject(tle->expr);
 		else
 		{

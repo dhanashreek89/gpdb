@@ -1748,7 +1748,7 @@ add_first_agg(PlannerInfo *root,
 			lNumGroups, num_nullcols, input_grouping, grouping,
 			rollup_gs_times,
 			context->agg_counts->numAggs, context->agg_counts->transitionSpace,
-			current_lefttree);
+			current_lefttree, false);
 
 	/* Pull up the Flow from the subplan */
 	agg_node->flow = pull_up_Flow(agg_node, agg_node->lefttree);

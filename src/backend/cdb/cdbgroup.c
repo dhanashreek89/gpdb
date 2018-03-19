@@ -1115,7 +1115,7 @@ make_one_stage_agg_plan(PlannerInfo *root,
 										0,	/* rollup_gs_times */
 										ctx->agg_counts->numAggs,
 										ctx->agg_counts->transitionSpace,
-										result_plan);
+										result_plan, true);
 		/* Hashed aggregation produces randomly-ordered results */
 		current_pathkeys = NIL;
 	}
@@ -1168,7 +1168,7 @@ make_one_stage_agg_plan(PlannerInfo *root,
 											0,	/* rollup_gs_times */
 											ctx->agg_counts->numAggs,
 											ctx->agg_counts->transitionSpace,
-											result_plan);
+											result_plan, false);
 		}
 
 		else
@@ -1428,7 +1428,7 @@ make_two_stage_agg_plan(PlannerInfo *root,
 										0,	/* rollup_gs_times */
 										ctx->agg_counts->numAggs,
 										ctx->agg_counts->transitionSpace,
-										result_plan);
+										result_plan, false);
 		/* May lose useful locus and sort. Unlikely, but could do better. */
 		mark_plan_strewn(result_plan);
 		current_pathkeys = NIL;
@@ -2104,7 +2104,7 @@ make_plan_for_one_dqa(PlannerInfo *root, MppGroupContext *ctx, int dqa_index,
 									0, /* rollup_gs_times */
 									ctx->agg_counts->numAggs - ctx->agg_counts->numOrderedAggs + 1,
 									ctx->agg_counts->transitionSpace, /* worst case */
-									result_plan);
+									result_plan, false);
 
 	dqaduphazard = (aggstrategy == AGG_HASHED && stream_bottom_agg);
 
@@ -4285,7 +4285,7 @@ add_second_stage_agg(PlannerInfo *root,
 								 rollup_gs_times,
 								 numAggs,
 								 transSpace,
-								 result_plan);
+								 result_plan, false);
 
 	/*
 	 * A sorted Agg will not change the sort order.
