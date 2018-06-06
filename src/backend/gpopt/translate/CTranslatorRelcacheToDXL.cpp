@@ -911,6 +911,11 @@ CTranslatorRelcacheToDXL::Ereldistribution
 		return IMDRelation::EreldistrMasterOnly;
 	}
 
+	if (POLICYTYPE_REPLICATED == pgppolicy->ptype)
+	{
+		return IMDRelation::EreldistrReplicated;
+	}
+
 	if (POLICYTYPE_PARTITIONED == pgppolicy->ptype)
 	{
 		if (0 == pgppolicy->nattrs)
@@ -926,7 +931,6 @@ CTranslatorRelcacheToDXL::Ereldistribution
 		return IMDRelation::EreldistrMasterOnly;
 	}
 
-	GPOS_RAISE(gpdxl::ExmaMD, ExmiDXLUnrecognizedType, GPOS_WSZ_LIT("unrecognized distribution policy"));
 	return IMDRelation::EreldistrSentinel;
 }
 
