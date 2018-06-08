@@ -148,7 +148,7 @@ CTranslatorUtils::Pdxltabdesc
 	IMDRelation::Ereldistrpolicy ereldist = pmdrel->Ereldistribution();
 
 	if (NULL != pfDistributedTable &&
-		(IMDRelation::EreldistrHash == ereldist || IMDRelation::EreldistrRandom == ereldist))
+		(IMDRelation::EreldistrHash == ereldist || IMDRelation::EreldistrRandom == ereldist || IMDRelation::EreldistrReplicated == ereldist))
 	{
 		*pfDistributedTable = true;
 	}
