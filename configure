@@ -9423,7 +9423,7 @@ fi
 $as_echo_n "checking Python configuration directory... " >&6; }
 python_majorversion=`${PYTHON} -c "import sys; print(sys.version[0])"`
 python_version=`${PYTHON} -c "import sys; print(sys.version[:3])"`
-if [ "${python_majorversion}" = "2" ];
+if  "${python_majorversion}" = "2" ;
 then
 	python_configdir=`${PYTHON} -c "from distutils.sysconfig import get_python_lib as f; import os; print(os.path.join(f(plat_specific=1,standard_lib=1),'config'))"`
 else
@@ -9442,7 +9442,6 @@ $as_echo_n "checking how to link an embedded Python application... " >&6; }
 python_libdir=`${PYTHON} -c "import distutils.sysconfig,string; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('LIBDIR'))))"`
 python_ldlibrary=`${PYTHON} -c "import distutils.sysconfig,string; print(' '.join(filter(None,distutils.sysconfig.get_config_vars('LDLIBRARY'))))"`
 ldlibrary=`echo "${python_ldlibrary}" | sed -e 's/\.so$//' -e 's/\.dll$//' -e 's/\.dylib$//' -e 's/\.sl$//'`
-
 if test x"${python_libdir}" != x"" -a x"${python_ldlibrary}" != x"" -a x"${python_ldlibrary}" != x"${ldlibrary}"
 then
 	# New way: use the official shared library
@@ -13251,7 +13250,7 @@ int
 main ()
 {
 
-return strncmp("2.63.", GPORCA_VERSION_STRING, 5);
+return strncmp("2.64.", GPORCA_VERSION_STRING, 5);
 
   ;
   return 0;
@@ -13261,7 +13260,7 @@ if ac_fn_cxx_try_run "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ok" >&5
 $as_echo "ok" >&6; }
 else
-  as_fn_error $? "Your ORCA version is expected to be 2.63.XXX" "$LINENO" 5
+  as_fn_error $? "Your ORCA version is expected to be 2.64.XXX" "$LINENO" 5
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \

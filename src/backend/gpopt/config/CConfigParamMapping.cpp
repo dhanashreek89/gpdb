@@ -490,6 +490,7 @@ CConfigParamMapping::PbsPack
 			break;
 		case JOIN_ORDER_EXHAUSTIVE_SEARCH:
 			pbsJoinHeuristic = GPOS_NEW(pmp) CBitSet(pmp, EopttraceSentinel);
+			pbsJoinHeuristic->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinDP));
 			break;
 		default:
 			elog(ERROR, "Invalid value for optimizer_join_order, must \
