@@ -35,12 +35,7 @@ using namespace gpmd;
 //		Constructs a file-based metadata provider
 //
 //---------------------------------------------------------------------------
-CMDProviderRelcache::CMDProviderRelcache
-	(
-	IMemoryPool *mp
-	)
-	:
-	m_mp(mp)
+CMDProviderRelcache::CMDProviderRelcache(IMemoryPool *mp) : m_mp(mp)
 {
 	GPOS_ASSERT(NULL != m_mp);
 }
@@ -54,19 +49,14 @@ CMDProviderRelcache::CMDProviderRelcache
 //
 //---------------------------------------------------------------------------
 CWStringBase *
-CMDProviderRelcache::GetMDObjDXLStr
-	(
-	IMemoryPool *mp,
-	CMDAccessor *md_accessor,
-	IMDId *md_id
-	)
-	const
+CMDProviderRelcache::GetMDObjDXLStr(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *md_id) const
 {
 	IMDCacheObject *md_obj = CTranslatorRelcacheToDXL::RetrieveObject(mp, md_accessor, md_id);
 
 	GPOS_ASSERT(NULL != md_obj);
 
-	CWStringDynamic *str = CDXLUtils::SerializeMDObj(m_mp, md_obj, true /*fSerializeHeaders*/, false /*findent*/);
+	CWStringDynamic *str =
+		CDXLUtils::SerializeMDObj(m_mp, md_obj, true /*fSerializeHeaders*/, false /*findent*/);
 
 	// cleanup DXL object
 	md_obj->Release();

@@ -35,45 +35,43 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CConfigParamMapping
 	{
-		private:
-			//------------------------------------------------------------------
-			//	@class:
-			//		SConfigMappingElem
-			//
-			//	@doc:
-			//		Unit describing the mapping of a single GPDB config param
-			//		to a trace flag
-			//
-			//------------------------------------------------------------------
-			struct SConfigMappingElem
-			{
-				// trace flag
-				EOptTraceFlag m_trace_flag;
+	private:
+		//------------------------------------------------------------------
+		//	@class:
+		//		SConfigMappingElem
+		//
+		//	@doc:
+		//		Unit describing the mapping of a single GPDB config param
+		//		to a trace flag
+		//
+		//------------------------------------------------------------------
+		struct SConfigMappingElem
+		{
+			// trace flag
+			EOptTraceFlag m_trace_flag;
 
-				// config param address
-				BOOL *m_is_param;
+			// config param address
+			BOOL *m_is_param;
 
-				// if true, we negate the config param value before setting traceflag value
-				BOOL m_negate_param;
+			// if true, we negate the config param value before setting traceflag value
+			BOOL m_negate_param;
 
-				// description
-				const WCHAR *description_str;
-			};
+			// description
+			const WCHAR *description_str;
+		};
 
-			// array of mapping elements
-			static SConfigMappingElem m_elements[];
+		// array of mapping elements
+		static SConfigMappingElem m_elements[];
 
-			// private ctor
-			CConfigParamMapping(const CConfigParamMapping &);
+		// private ctor
+		CConfigParamMapping(const CConfigParamMapping &);
 
-		public:
-			// pack enabled optimizer config params in a traceflag bitset
-			static
-			CBitSet *PackConfigParamInBitset(IMemoryPool *mp, ULONG xform_id);
+	public:
+		// pack enabled optimizer config params in a traceflag bitset
+		static CBitSet *PackConfigParamInBitset(IMemoryPool *mp, ULONG xform_id);
 	};
-}
+}  // namespace gpdxl
 
-#endif // ! GPOPT_CGUCMapping_H
+#endif  // ! GPOPT_CGUCMapping_H
 
 // EOF
-

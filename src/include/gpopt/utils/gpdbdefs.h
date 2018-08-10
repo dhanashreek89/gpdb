@@ -16,8 +16,8 @@
 #ifndef GPDBDefs_H
 #define GPDBDefs_H
 
-extern "C" {
-
+extern "C"
+{
 #include "postgres.h"
 #include <string.h>
 #include "nodes/nodes.h"
@@ -67,48 +67,35 @@ extern "C" {
 #include "utils/faultinjector.h"
 #include "funcapi.h"
 
-extern
-Query *preprocess_query_optimizer(Query *query, ParamListInfo boundParams);
+	extern Query *preprocess_query_optimizer(Query *query, ParamListInfo boundParams);
 
-extern
-List *pg_parse_and_rewrite(const char *query_string, Oid *paramTypes, int iNumParams);
+	extern List *pg_parse_and_rewrite(const char *query_string, Oid *paramTypes, int iNumParams);
 
-extern
-PlannedStmt *pg_plan_query(Query *pqueryTree, ParamListInfo boundParams);
+	extern PlannedStmt *pg_plan_query(Query *pqueryTree, ParamListInfo boundParams);
 
-extern
-char * get_rel_name(Oid relid);
+	extern char *get_rel_name(Oid relid);
 
-extern
-Relation RelationIdGetRelation(Oid relationId);
+	extern Relation RelationIdGetRelation(Oid relationId);
 
-extern
-void RelationClose(Relation relation);
+	extern void RelationClose(Relation relation);
 
-extern
-Oid get_atttype(Oid relid, AttrNumber attnum);
+	extern Oid get_atttype(Oid relid, AttrNumber attnum);
 
-extern
-RegProcedure get_opcode(Oid opid);
+	extern RegProcedure get_opcode(Oid opid);
 
-extern
-void ExecutorStart(QueryDesc *pqueryDesc, int iEFlags);
+	extern void ExecutorStart(QueryDesc *pqueryDesc, int iEFlags);
 
-extern
-TupleTableSlot *ExecutorRun(QueryDesc *pqueryDesc, ScanDirection direction, long lCount);
+	extern TupleTableSlot *ExecutorRun(QueryDesc *pqueryDesc, ScanDirection direction, long lCount);
 
-extern
-void ExecutorEnd(QueryDesc *pqueryDesc);
+	extern void ExecutorEnd(QueryDesc *pqueryDesc);
 
-extern
-void ExecCheckRTPerms(List *rangeTable);
+	extern void ExecCheckRTPerms(List *rangeTable);
 
-extern
-void ExecCheckRTEPerms(RangeTblEntry *rte);
+	extern void ExecCheckRTEPerms(RangeTblEntry *rte);
 
-} // end extern C
+}  // end extern C
 
 
-#endif // GPDBDefs_H
+#endif  // GPDBDefs_H
 
 // EOF

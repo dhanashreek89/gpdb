@@ -34,7 +34,7 @@ namespace gpmd
 {
 	class IMDProvider;
 	class CMDProviderCommProxy;
-}
+}  // namespace gpmd
 
 
 namespace gpoptudfs
@@ -56,91 +56,80 @@ namespace gpoptudfs
 	//---------------------------------------------------------------------------
 	class COptClient
 	{
-		private:
-
-			// struct containing optimization request parameters;
-			// needs to be in sync with the argument passed by the client;
-			struct SOptParams
-			{
-				// path where socket is initialized
-				const char *m_path;
-
-				// input query
-				Query *m_query;
-			};
-
-			// input query
-			Query *m_query;
-
+	private:
+		// struct containing optimization request parameters;
+		// needs to be in sync with the argument passed by the client;
+		struct SOptParams
+		{
 			// path where socket is initialized
 			const char *m_path;
 
-			// memory pool
-			IMemoryPool *m_mp;
+			// input query
+			Query *m_query;
+		};
 
-			// communicator
-			CCommunicator *m_communicator;
+		// input query
+		Query *m_query;
 
-			// default id for the source system
-			static
-			const CSystemId m_default_sysid;
+		// path where socket is initialized
+		const char *m_path;
 
-			// error severity levels
+		// memory pool
+		IMemoryPool *m_mp;
 
-			// array mapping GPOS to elog() error severity
-			static
-			ULONG elog_to_severity_map[CException::ExsevSentinel][2];
+		// communicator
+		CCommunicator *m_communicator;
 
-			// ctor
-			COptClient
-				(
-				SOptParams *op
-				)
-				:
-				m_query(op->m_query),
-				m_path(op->m_path),
-				m_mp(NULL),
-				m_communicator(NULL)
-			{
-				GPOS_ASSERT(NULL != m_query);
-				GPOS_ASSERT(NULL != m_path);
-			}
+		// default id for the source system
+		static const CSystemId m_default_sysid;
 
-			// dtor
-			~COptClient()
-			{}
+		// error severity levels
 
-			// request optimization from server
-			PlannedStmt *GPOPTOptimizedPlan();
+		// array mapping GPOS to elog() error severity
+		static ULONG elog_to_severity_map[CException::ExsevSentinel][2];
 
-			// set traceflags
-			void SetTraceflags();
+		// ctor
+		COptClient(SOptParams *op)
+			: m_query(op->m_query), m_path(op->m_path), m_mp(NULL), m_communicator(NULL)
+		{
+			GPOS_ASSERT(NULL != m_query);
+			GPOS_ASSERT(NULL != m_path);
+		}
 
-			// send query optimization request to server
-			void SendRequest(CMDAccessor *md_accessor);
+		// dtor
+		~COptClient()
+		{
+		}
 
-			// retrieve DXL plan
-			const CHAR *SzPlanDXL(IMDProvider *md_provider);
+		// request optimization from server
+		PlannedStmt *GPOPTOptimizedPlan();
 
-			// send MD response
-			void SendMDResponse(CMDProviderCommProxy *md_provider_proxy, const WCHAR *req);
+		// set traceflags
+		void SetTraceflags();
 
-			// build planned statement from serialized plan
-			PlannedStmt *ConstructPlanStmt(CMDAccessor *md_accessor, const CHAR *serialized_plan);
+		// send query optimization request to server
+		void SendRequest(CMDAccessor *md_accessor);
 
-			// elog wrapper
-			void Elog(ULONG severity, const WCHAR *msg);
+		// retrieve DXL plan
+		const CHAR *SzPlanDXL(IMDProvider *md_provider);
 
-		public:
+		// send MD response
+		void SendMDResponse(CMDProviderCommProxy *md_provider_proxy, const WCHAR *req);
 
-			// invoke optimizer instance
-			static
-			void *Run(void *pv);
+		// build planned statement from serialized plan
+		PlannedStmt *ConstructPlanStmt(CMDAccessor *md_accessor, const CHAR *serialized_plan);
 
-	}; // class COptClient
-}
+		// elog wrapper
+		void Elog(ULONG severity, const WCHAR *msg);
 
-#endif // !COptClient_H
+	public:
+		// invoke optimizer instance
+		static void *Run(void *pv);
+
+	};  // class COptClient
+}  // namespace gpoptudfs
+
+#endif  // !COptClient_H
 
 
 // EOF

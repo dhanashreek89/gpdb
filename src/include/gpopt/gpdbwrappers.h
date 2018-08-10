@@ -55,8 +55,8 @@ struct Var;
 struct Const;
 struct ArrayExpr;
 
-namespace gpdb {
-
+namespace gpdb
+{
 	// convert datum to bool
 	bool BoolFromDatum(Datum d);
 
@@ -155,7 +155,7 @@ namespace gpdb {
 
 	// extract nodes with specific tag from an expression tree
 	List *ExtractNodesExpression(Node *node, int node_tag, bool descend_into_subqueries);
-	
+
 	// intermediate result type of given aggregate
 	Oid GetAggIntermediateResultType(Oid aggid);
 
@@ -165,7 +165,7 @@ namespace gpdb {
 
 	// is aggregate ordered
 	bool IsOrderedAgg(Oid aggid);
-	
+
 	// does aggregate have a preliminary function
 	bool AggHasPrelimFunc(Oid aggid);
 
@@ -173,18 +173,24 @@ namespace gpdb {
 	bool AggHasPrelimOrInvPrelimFunc(Oid aggid);
 
 	// intermediate result type of given aggregate
-	Oid GetAggregate(const char* agg, Oid type_oid);
+	Oid GetAggregate(const char *agg, Oid type_oid);
 
 	// array type oid
 	Oid GetArrayType(Oid typid);
 
 	// deconstruct array
-	void DeconstructArray(struct ArrayType *array, Oid elmtype, int elmlen, bool elmbyval,
-			char elmalign, Datum **elemsp, bool **nullsp, int *nelemsp);
+	void DeconstructArray(struct ArrayType *array,
+						  Oid elmtype,
+						  int elmlen,
+						  bool elmbyval,
+						  char elmalign,
+						  Datum **elemsp,
+						  bool **nullsp,
+						  int *nelemsp);
 
 	// attribute stats slot
-	bool GetAttrStatsSlot(AttStatsSlot *sslot, HeapTuple statstuple, int reqkind,
-			Oid reqop, int flags);
+	bool GetAttrStatsSlot(
+		AttStatsSlot *sslot, HeapTuple statstuple, int reqkind, Oid reqop, int flags);
 
 	// free attribute stats slot
 	void FreeAttrStatsSlot(AttStatsSlot *sslot);
@@ -244,11 +250,15 @@ namespace gpdb {
 	Node *GetRelationPartContraints(Oid rel_oid, List **default_levels);
 
 	// get the cast function for the specified source and destination types
-	bool GetCastFunc(Oid src_oid, Oid dest_oid, bool *is_binary_coercible, Oid *cast_fn_oid, CoercionPathType *pathtype);
-	
+	bool GetCastFunc(Oid src_oid,
+					 Oid dest_oid,
+					 bool *is_binary_coercible,
+					 Oid *cast_fn_oid,
+					 CoercionPathType *pathtype);
+
 	// get type of operator
 	unsigned int GetComparisonType(Oid op_oid, Oid left_oid, Oid right_oid);
-	
+
 	// get scalar comparison between given types
 	Oid GetComparisonOperator(Oid left_oid, Oid right_oid, unsigned int cmpt);
 
@@ -290,7 +300,7 @@ namespace gpdb {
 
 	// find the oid of the root partition given partition oid belongs to
 	Oid GetRootPartition(Oid oid);
-	
+
 	// partition attributes
 	List *GetPartitionAttrs(Oid oid);
 
@@ -298,7 +308,8 @@ namespace gpdb {
 	void GetOrderedPartKeysAndKinds(Oid oid, List **pkeys, List **pkinds);
 
 	// parts of a partitioned table
-	PartitionNode *GetParts(Oid relid, int2 level, Oid parent, bool inctemplate, bool includesubparts);
+	PartitionNode *GetParts(
+		Oid relid, int2 level, Oid parent, bool inctemplate, bool includesubparts);
 
 	// keys of the relation with the given oid
 	List *GetRelationKeys(Oid relid);
@@ -371,7 +382,7 @@ namespace gpdb {
 
 	// free list
 	void ListFree(List *list);
-	
+
 	// deep free of a list
 	void ListFreeDeep(List *list);
 
@@ -398,7 +409,7 @@ namespace gpdb {
 
 	// make a NULL constant of the given type
 	Node *MakeNULLConst(Oid type_oid);
-	
+
 	// create a new target entry
 	TargetEntry *MakeTargetEntry(Expr *expr, AttrNumber resno, char *resname, bool resjunk);
 
@@ -406,10 +417,14 @@ namespace gpdb {
 	Var *MakeVar(Index varno, AttrNumber varattno, Oid vartype, int32 vartypmod, Index varlevelsup);
 
 	// memory allocation functions
-	void *MemCtxtAllocImpl(MemoryContext context, Size size, const char* file, const char * func, int line);
-	void *MemCtxtAllocZeroAlignedImpl(MemoryContext context, Size size, const char* file, const char * func, int line);
-	void *MemCtxtAllocZeroImpl(MemoryContext context, Size size, const char* file, const char * func, int line);
-	void *MemCtxtReallocImpl(void *pointer, Size size, const char* file, const char * func, int line);
+	void *MemCtxtAllocImpl(
+		MemoryContext context, Size size, const char *file, const char *func, int line);
+	void *MemCtxtAllocZeroAlignedImpl(
+		MemoryContext context, Size size, const char *file, const char *func, int line);
+	void *MemCtxtAllocZeroImpl(
+		MemoryContext context, Size size, const char *file, const char *func, int line);
+	void *MemCtxtReallocImpl(
+		void *pointer, Size size, const char *file, const char *func, int line);
 	void *GPDBAlloc(Size size);
 	void GPDBFree(void *ptr);
 
@@ -417,9 +432,16 @@ namespace gpdb {
 	char *MemCtxtStrdup(MemoryContext context, const char *string);
 
 	// similar to ereport for logging messages
-	void GpdbEreportImpl(int xerrcode, int severitylevel, const char *xerrmsg, const char *xerrhint, const char *filename, int lineno, const char *funcname);
+	void GpdbEreportImpl(int xerrcode,
+						 int severitylevel,
+						 const char *xerrmsg,
+						 const char *xerrhint,
+						 const char *filename,
+						 int lineno,
+						 const char *funcname);
 #define GpdbEreport(xerrcode, severitylevel, xerrmsg, xerrhint) \
-	gpdb::GpdbEreportImpl(xerrcode, severitylevel, xerrmsg, xerrhint , __FILE__, __LINE__, PG_FUNCNAME_MACRO)
+	gpdb::GpdbEreportImpl(                                      \
+		xerrcode, severitylevel, xerrmsg, xerrhint, __FILE__, __LINE__, PG_FUNCNAME_MACRO)
 
 	// string representation of a node
 	char *NodeToString(void *obj);
@@ -452,13 +474,13 @@ namespace gpdb {
 	bool OperatorExists(Oid oid);
 
 	// fetch detoasted copies of toastable datatypes
-	struct varlena *DetoastDatum(struct varlena * datum);
+	struct varlena *DetoastDatum(struct varlena *datum);
 
 	// expression tree walker
-	bool WalkExpressionTree(Node *node, bool(*walker)(), void *context);
+	bool WalkExpressionTree(Node *node, bool (*walker)(), void *context);
 
 	// query or expression tree walker
-	bool WalkQueryOrExpressionTree(Node *node, bool(*walker)(), void *context, int flags);
+	bool WalkQueryOrExpressionTree(Node *node, bool (*walker)(), void *context, int flags);
 
 	// modify a query tree
 	Query *MutateQueryTree(Query *query, Node *(*mutator)(), void *context, int flags);
@@ -474,10 +496,10 @@ namespace gpdb {
 
 	// check whether the part with the given oid is the root of a partition table
 	bool RelPartIsRoot(Oid relid);
-	
+
 	// check whether the part with the given oid is an interior subpartition
 	bool RelPartIsInterior(Oid relid);
-	
+
 	// check whether table with the given oid is a regular table and not part of a partitioned table
 	bool RelPartIsNone(Oid relid);
 
@@ -487,20 +509,20 @@ namespace gpdb {
 	// check whether a relation is inherited
 	bool FHasSubclass(Oid rel_oid);
 
-    // check whether a relation has parquet children
-    bool HasParquetChildren(Oid rel_oid);
-    
-    // return the distribution policy of a relation; if the table is partitioned
-    // and the parts are distributed differently, return Random distribution
-    GpPolicy *GetDistributionPolicy(Relation rel);
-    
-    // return true if the table is partitioned and hash-distributed, and one of  
-    // the child partitions is randomly distributed
-    gpos::BOOL IsChildPartDistributionMismatched(Relation rel);
+	// check whether a relation has parquet children
+	bool HasParquetChildren(Oid rel_oid);
 
-    // return true if the table is partitioned and any of the child partitions
-    // have a trigger of the given type
-    gpos::BOOL ChildPartHasTriggers(Oid oid, int trigger_type);
+	// return the distribution policy of a relation; if the table is partitioned
+	// and the parts are distributed differently, return Random distribution
+	GpPolicy *GetDistributionPolicy(Relation rel);
+
+	// return true if the table is partitioned and hash-distributed, and one of
+	// the child partitions is randomly distributed
+	gpos::BOOL IsChildPartDistributionMismatched(Relation rel);
+
+	// return true if the table is partitioned and any of the child partitions
+	// have a trigger of the given type
+	gpos::BOOL ChildPartHasTriggers(Oid oid, int trigger_type);
 
 	// does a relation exist with the given oid
 	bool RelationExists(Oid oid);
@@ -509,18 +531,23 @@ namespace gpdb {
 	List *GetAllRelationOids(void);
 
 	// estimate the relation size using the real number of blocks and tuple density
-	void EstimateRelationSize(Relation rel,	int32 *attr_widths,	BlockNumber *pages,	double *tuples);
-	void CdbEstimateRelationSize (RelOptInfo *relOptInfo, Relation rel, int32 *attr_widths, BlockNumber *pages, double *tuples, bool *default_stats_used);
+	void EstimateRelationSize(Relation rel, int32 *attr_widths, BlockNumber *pages, double *tuples);
+	void CdbEstimateRelationSize(RelOptInfo *relOptInfo,
+								 Relation rel,
+								 int32 *attr_widths,
+								 BlockNumber *pages,
+								 double *tuples,
+								 bool *default_stats_used);
 
 	// close the given relation
 	void CloseRelation(Relation rel);
 
 	// return the logical indexes for a partitioned table
 	LogicalIndexes *GetLogicalPartIndexes(Oid oid);
-	
+
 	// return the logical info structure for a given logical index oid
 	LogicalIndexInfo *GetLogicalIndexInfo(Oid root_oid, Oid index_oid);
-	
+
 	// return a list of index oids for a given relation
 	List *GetRelationIndexes(Relation relation);
 
@@ -555,7 +582,7 @@ namespace gpdb {
 
 	// parse external table URI
 	Uri *ParseExternTableUri(const char *uri);
-	
+
 	// returns ComponentDatabases
 	CdbComponentDatabases *GetComponentDatabases(void);
 
@@ -579,32 +606,32 @@ namespace gpdb {
 
 	// replace any polymorphic type with correct data type deduced from input arguments
 	bool ResolvePolymorphicArgType(int numargs, Oid *argtypes, char *argmodes, FuncExpr *call_expr);
-	
+
 	// hash a const value with GPDB's hash function
 	int32 CdbHashConst(Const *constant, int num_segments);
-	
+
 	// hash a list of const values with GPDB's hash function
 	int32 CdbHashConstList(List *constants, int num_segments);
-	
-	// check permissions on range table 
+
+	// check permissions on range table
 	void CheckRTPermissions(List *rtable);
-	
+
 	// get index operator family properties
 	void IndexOpProperties(Oid opno, Oid opfamily, int *strategy, Oid *subtype, bool *recheck);
-	
+
 	// get oids of families this operator belongs to
 	List *GetOpFamiliesForScOp(Oid opno);
-	
+
 	// get oids of op classes for the index keys
 	List *GetIndexOpFamilies(Oid index_oid);
 
 	// returns the result of evaluating 'expr' as an Expr. Caller keeps ownership of 'expr'
-	// and takes ownership of the result 
+	// and takes ownership of the result
 	Expr *EvaluateExpr(Expr *expr, Oid result_type, int32 typmod);
-	
+
 	// interpret the value of "With oids" option from a list of defelems
 	bool InterpretOidsOption(List *options);
-	
+
 	// extract string value from defelem's value
 	char *DefGetString(DefElem *defelem);
 
@@ -635,54 +662,56 @@ namespace gpdb {
 	// returns true if a query cancel is requested in GPDB
 	bool IsAbortRequested(void);
 
-} //namespace gpdb
+}  //namespace gpdb
 
-#define ForEach(cell, l)	\
-	for ((cell) = gpdb::ListHead(l); (cell) != NULL; (cell) = lnext(cell))
+#define ForEach(cell, l) for ((cell) = gpdb::ListHead(l); (cell) != NULL; (cell) = lnext(cell))
 
-#define ForBoth(cell1, list1, cell2, list2)							\
-	for ((cell1) = gpdb::ListHead(list1), (cell2) = gpdb::ListHead(list2);	\
-		 (cell1) != NULL && (cell2) != NULL;						\
+#define ForBoth(cell1, list1, cell2, list2)                                \
+	for ((cell1) = gpdb::ListHead(list1), (cell2) = gpdb::ListHead(list2); \
+		 (cell1) != NULL && (cell2) != NULL;                               \
 		 (cell1) = lnext(cell1), (cell2) = lnext(cell2))
 
-#define ForThree(cell1, list1, cell2, list2, cell3, list3)							\
-	for ((cell1) = gpdb::ListHead(list1), (cell2) = gpdb::ListHead(list2), (cell3) = gpdb::ListHead(list3);	\
-		 (cell1) != NULL && (cell2) != NULL && (cell3) != NULL;						\
+#define ForThree(cell1, list1, cell2, list2, cell3, list3)      \
+	for ((cell1) = gpdb::ListHead(list1),                       \
+		(cell2) = gpdb::ListHead(list2),                        \
+		(cell3) = gpdb::ListHead(list3);                        \
+		 (cell1) != NULL && (cell2) != NULL && (cell3) != NULL; \
 		 (cell1) = lnext(cell1), (cell2) = lnext(cell2), (cell3) = lnext(cell3))
 
-#define ForEachWithCount(cell, list, counter) \
-	for ((cell) = gpdb::ListHead(list), (counter)=0; \
-	     (cell) != NULL; \
-	     (cell) = lnext(cell), ++(counter))
+#define ForEachWithCount(cell, list, counter)                          \
+	for ((cell) = gpdb::ListHead(list), (counter) = 0; (cell) != NULL; \
+		 (cell) = lnext(cell), ++(counter))
 
 #define ListMake1(x1) gpdb::LPrepend(x1, NIL)
 
-#define ListMake2(x1,x2) gpdb::LPrepend(x1, ListMake1(x2))
+#define ListMake2(x1, x2) gpdb::LPrepend(x1, ListMake1(x2))
 
 #define ListMake1Int(x1) gpdb::LPrependInt(x1, NIL)
 
 #define ListMake1Oid(x1) gpdb::LPrependOid(x1, NIL)
-#define ListMake2Oid(x1,x2) gpdb::LPrependOid(x1, ListMake1Oid(x2))
+#define ListMake2Oid(x1, x2) gpdb::LPrependOid(x1, ListMake1Oid(x2))
 
 #define LInitial(l) lfirst(gpdb::ListHead(l))
 
 #define LInitialOID(l) lfirst_oid(gpdb::ListHead(l))
 
-#define Palloc0Fast(sz) \
-	( MemSetTest(0, (sz)) ? \
-		gpdb::MemCtxtAllocZeroAlignedImpl(CurrentMemoryContext, (sz), __FILE__, PG_FUNCNAME_MACRO, __LINE__) : \
-		gpdb::MemCtxtAllocZeroImpl(CurrentMemoryContext, (sz), __FILE__, PG_FUNCNAME_MACRO, __LINE__))
+#define Palloc0Fast(sz)                                                                           \
+	(MemSetTest(0, (sz)) ? gpdb::MemCtxtAllocZeroAlignedImpl(                                     \
+							   CurrentMemoryContext, (sz), __FILE__, PG_FUNCNAME_MACRO, __LINE__) \
+						 : gpdb::MemCtxtAllocZeroImpl(                                            \
+							   CurrentMemoryContext, (sz), __FILE__, PG_FUNCNAME_MACRO, __LINE__))
 
 #ifdef __GNUC__
 
 /* With GCC, we can use a compound statement within an expression */
-#define NewNode(size, tag) \
-({	Node   *_result; \
-	AssertMacro((size) >= sizeof(Node));		/* need the tag, at least */ \
-	_result = (Node *) Palloc0Fast(size); \
-	_result->type = (tag); \
-	_result; \
-})
+#define NewNode(size, tag)                                                \
+	({                                                                    \
+		Node *_result;                                                    \
+		AssertMacro((size) >= sizeof(Node)); /* need the tag, at least */ \
+		_result = (Node *) Palloc0Fast(size);                             \
+		_result->type = (tag);                                            \
+		_result;                                                          \
+	})
 #else
 
 /*
@@ -693,19 +722,17 @@ namespace gpdb {
  */
 extern PGDLLIMPORT Node *newNodeMacroHolder;
 
-#define NewNode(size, tag) \
-( \
-	AssertMacro((size) >= sizeof(Node)),		/* need the tag, at least */ \
-	newNodeMacroHolder = (Node *) Palloc0Fast(size), \
-	newNodeMacroHolder->type = (tag), \
-	newNodeMacroHolder \
-)
-#endif   // __GNUC__
+#define NewNode(size, tag)                                             \
+	(AssertMacro((size) >= sizeof(Node)), /* need the tag, at least */ \
+	 newNodeMacroHolder = (Node *) Palloc0Fast(size),                  \
+	 newNodeMacroHolder->type = (tag),                                 \
+	 newNodeMacroHolder)
+#endif  // __GNUC__
 
-#define MakeNode(_type_) 		((_type_ *) NewNode(sizeof(_type_),T_##_type_))
+#define MakeNode(_type_) ((_type_ *) NewNode(sizeof(_type_), T_##_type_))
 
 #define PStrDup(str) gpdb::MemCtxtStrdup(CurrentMemoryContext, (str))
 
-#endif // !GPDB_gpdbwrappers_H
+#endif  // !GPDB_gpdbwrappers_H
 
 // EOF

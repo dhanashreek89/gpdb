@@ -45,44 +45,37 @@ namespace gpmd
 	//---------------------------------------------------------------------------
 	class CMDProviderRelcache : public IMDProvider
 	{
-		private:
-			// memory pool
-			IMemoryPool *m_mp;
+	private:
+		// memory pool
+		IMemoryPool *m_mp;
 
-			// private copy ctor
-			CMDProviderRelcache(const CMDProviderRelcache&);
+		// private copy ctor
+		CMDProviderRelcache(const CMDProviderRelcache &);
 
-		public:
-			// ctor/dtor
-			explicit
-			CMDProviderRelcache(IMemoryPool *mp);
+	public:
+		// ctor/dtor
+		explicit CMDProviderRelcache(IMemoryPool *mp);
 
-			~CMDProviderRelcache()
-			{
-			}
+		~CMDProviderRelcache()
+		{
+		}
 
-			// returns the DXL string of the requested metadata object
-			virtual
-			CWStringBase *GetMDObjDXLStr(IMemoryPool *mp, CMDAccessor *md_accessor, IMDId *md_id) const;
+		// returns the DXL string of the requested metadata object
+		virtual CWStringBase *GetMDObjDXLStr(IMemoryPool *mp,
+											 CMDAccessor *md_accessor,
+											 IMDId *md_id) const;
 
-			// return the mdid for the requested type
-			virtual
-			IMDId *MDId
-				(
-				IMemoryPool *mp,
-				CSystemId sysid,
-				IMDType::ETypeInfo type_info
-				)
-				const
-			{
-				return GetGPDBTypeMdid(mp, sysid, type_info);
-			}
-
+		// return the mdid for the requested type
+		virtual IMDId *
+		MDId(IMemoryPool *mp, CSystemId sysid, IMDType::ETypeInfo type_info) const
+		{
+			return GetGPDBTypeMdid(mp, sysid, type_info);
+		}
 	};
-}
+}  // namespace gpmd
 
 
 
-#endif // !GPMD_CMDProviderRelcache_H
+#endif  // !GPMD_CMDProviderRelcache_H
 
 // EOF

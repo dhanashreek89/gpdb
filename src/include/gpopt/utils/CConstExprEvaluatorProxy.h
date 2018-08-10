@@ -41,87 +41,71 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CConstExprEvaluatorProxy : public gpopt::IConstDXLNodeEvaluator
 	{
-		private:
-			//---------------------------------------------------------------------------
-			//	@class:
-			//		CEmptyMappingColIdVar
-			//
-			//	@doc:
-			//		Dummy class to implement an empty variable mapping. Variable lookups
-			//		raise exceptions.
-			//
-			//---------------------------------------------------------------------------
-			class CEmptyMappingColIdVar : public CMappingColIdVar
-			{
-				public:
-					explicit
-					CEmptyMappingColIdVar
-						(
-						IMemoryPool *mp
-						)
-						:
-						CMappingColIdVar(mp)
-					{
-					}
-
-					virtual
-					~CEmptyMappingColIdVar()
-					{
-					}
-
-					virtual
-					Var *VarFromDXLNodeScId(const CDXLScalarIdent *scalar_ident);
-
-			};
-
-			// memory pool, not owned
-			IMemoryPool *m_mp;
-
-			// empty mapping needed for the translator
-			CEmptyMappingColIdVar m_emptymapcidvar;
-
-			// pointer to metadata cache accessor
-			CMDAccessor *m_md_accessor;
-
-			// translator for the DXL input -> GPDB Expr
-			CTranslatorDXLToScalar m_dxl2scalar_translator;
-
+	private:
+		//---------------------------------------------------------------------------
+		//	@class:
+		//		CEmptyMappingColIdVar
+		//
+		//	@doc:
+		//		Dummy class to implement an empty variable mapping. Variable lookups
+		//		raise exceptions.
+		//
+		//---------------------------------------------------------------------------
+		class CEmptyMappingColIdVar : public CMappingColIdVar
+		{
 		public:
-			// ctor
-			CConstExprEvaluatorProxy
-				(
-				IMemoryPool *mp,
-				CMDAccessor *md_accessor
-				)
-				:
-				m_mp(mp),
-				m_emptymapcidvar(m_mp),
-				m_md_accessor(md_accessor),
-				m_dxl2scalar_translator(m_mp, m_md_accessor, 0)
+			explicit CEmptyMappingColIdVar(IMemoryPool *mp) : CMappingColIdVar(mp)
 			{
 			}
 
-			// dtor
-			virtual
-			~CConstExprEvaluatorProxy()
+			virtual ~CEmptyMappingColIdVar()
 			{
 			}
 
-			// evaluate given constant expressionand return the DXL representation of the result.
-			// if the expression has variables, an error is thrown.
-			// caller keeps ownership of 'expr_dxlnode' and takes ownership of the returned pointer
-			virtual
-			CDXLNode *EvaluateExpr(const CDXLNode *expr);
+			virtual Var *VarFromDXLNodeScId(const CDXLScalarIdent *scalar_ident);
+		};
 
-			// returns true iff the evaluator can evaluate constant expressions without subqueries
-			virtual
-			BOOL FCanEvalExpressions()
-			{
-				return true;
-			}
+		// memory pool, not owned
+		IMemoryPool *m_mp;
+
+		// empty mapping needed for the translator
+		CEmptyMappingColIdVar m_emptymapcidvar;
+
+		// pointer to metadata cache accessor
+		CMDAccessor *m_md_accessor;
+
+		// translator for the DXL input -> GPDB Expr
+		CTranslatorDXLToScalar m_dxl2scalar_translator;
+
+	public:
+		// ctor
+		CConstExprEvaluatorProxy(IMemoryPool *mp, CMDAccessor *md_accessor)
+			: m_mp(mp),
+			  m_emptymapcidvar(m_mp),
+			  m_md_accessor(md_accessor),
+			  m_dxl2scalar_translator(m_mp, m_md_accessor, 0)
+		{
+		}
+
+		// dtor
+		virtual ~CConstExprEvaluatorProxy()
+		{
+		}
+
+		// evaluate given constant expressionand return the DXL representation of the result.
+		// if the expression has variables, an error is thrown.
+		// caller keeps ownership of 'expr_dxlnode' and takes ownership of the returned pointer
+		virtual CDXLNode *EvaluateExpr(const CDXLNode *expr);
+
+		// returns true iff the evaluator can evaluate constant expressions without subqueries
+		virtual BOOL
+		FCanEvalExpressions()
+		{
+			return true;
+		}
 	};
-}
+}  // namespace gpdxl
 
-#endif // !GPDXL_CConstExprEvaluator_H
+#endif  // !GPDXL_CConstExprEvaluator_H
 
 // EOF
