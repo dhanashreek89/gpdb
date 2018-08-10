@@ -41,20 +41,17 @@ using namespace gpmd;
 //		Constructor
 //
 //---------------------------------------------------------------------------
-CMappingColIdVarPlStmt::CMappingColIdVarPlStmt
-	(
+CMappingColIdVarPlStmt::CMappingColIdVarPlStmt(
 	IMemoryPool *mp,
 	const CDXLTranslateContextBaseTable *base_table_context,
 	CDXLTranslationContextArray *child_contexts,
 	CDXLTranslateContext *output_context,
-	CContextDXLToPlStmt *dxl_to_plstmt_context
-	)
-	:
-	CMappingColIdVar(mp),
-	m_base_table_context(base_table_context),
-	m_child_contexts(child_contexts),
-	m_output_context(output_context),
-	m_dxl_to_plstmt_context(dxl_to_plstmt_context)
+	CContextDXLToPlStmt *dxl_to_plstmt_context)
+	: CMappingColIdVar(mp),
+	  m_base_table_context(base_table_context),
+	  m_child_contexts(child_contexts),
+	  m_output_context(output_context),
+	  m_dxl_to_plstmt_context(dxl_to_plstmt_context)
 {
 }
 
@@ -95,10 +92,7 @@ CMappingColIdVarPlStmt::GetOutputContext()
 //
 //---------------------------------------------------------------------------
 Param *
-CMappingColIdVarPlStmt::ParamFromDXLNodeScId
-	(
-	const CDXLScalarIdent *dxlop
-	)
+CMappingColIdVarPlStmt::ParamFromDXLNodeScId(const CDXLScalarIdent *dxlop)
 {
 	GPOS_ASSERT(NULL != m_output_context);
 
@@ -128,10 +122,7 @@ CMappingColIdVarPlStmt::ParamFromDXLNodeScId
 //
 //---------------------------------------------------------------------------
 Var *
-CMappingColIdVarPlStmt::VarFromDXLNodeScId
-	(
-	const CDXLScalarIdent *dxlop
-	)
+CMappingColIdVarPlStmt::VarFromDXLNodeScId(const CDXLScalarIdent *dxlop)
 {
 	Index varno = 0;
 	AttrNumber attno = 0;
@@ -199,12 +190,12 @@ CMappingColIdVarPlStmt::VarFromDXLNodeScId
 					continue;
 				}
 
-				Var *var = (Var*) target_entry->expr;
+				Var *var = (Var *) target_entry->expr;
 				varno = var->varno;
 			}
 		}
 
-		if (NULL  == target_entry)
+		if (NULL == target_entry)
 		{
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, colid);
 		}
@@ -214,7 +205,7 @@ CMappingColIdVarPlStmt::VarFromDXLNodeScId
 		// find the original varno and attno for this column
 		if (IsA(target_entry->expr, Var))
 		{
-			Var *var = (Var*) target_entry->expr;
+			Var *var = (Var *) target_entry->expr;
 			varno_old = var->varnoold;
 			attno_old = var->varoattno;
 		}
@@ -225,14 +216,12 @@ CMappingColIdVarPlStmt::VarFromDXLNodeScId
 		}
 	}
 
-	Var *var = gpdb::MakeVar
-						(
-						varno,
-						attno,
-						CMDIdGPDB::CastMdid(dxlop->MDIdType())->Oid(),
-						dxlop->TypeModifier(),
-						0	// varlevelsup
-						);
+	Var *var = gpdb::MakeVar(varno,
+							 attno,
+							 CMDIdGPDB::CastMdid(dxlop->MDIdType())->Oid(),
+							 dxlop->TypeModifier(),
+							 0  // varlevelsup
+	);
 
 	// set varnoold and varoattno since makeVar does not set them properly
 	var->varnoold = varno_old;
