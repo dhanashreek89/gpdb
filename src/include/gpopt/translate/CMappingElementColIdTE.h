@@ -41,42 +41,43 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CMappingElementColIdTE : public CRefCount
 	{
-		private:
+	private:
+		// the column identifier that is used as the key
+		ULONG m_colid;
 
-			// the column identifier that is used as the key
-			ULONG m_colid;
+		// the query level
+		ULONG m_query_level;
 
-			// the query level
-			ULONG m_query_level;
+		// the target entry
+		TargetEntry *m_target_entry;
 
-			// the target entry
-			TargetEntry *m_target_entry;
+	public:
+		// ctors and dtor
+		CMappingElementColIdTE(ULONG, ULONG, TargetEntry *);
 
-		public:
+		// return the ColId
+		ULONG
+		GetColId() const
+		{
+			return m_colid;
+		}
 
-			// ctors and dtor
-			CMappingElementColIdTE(ULONG, ULONG, TargetEntry *);
+		// return the query level
+		ULONG
+		GetQueryLevel() const
+		{
+			return m_query_level;
+		}
 
-			// return the ColId
-			ULONG GetColId() const
-			{
-				return m_colid;
-			}
-
-			// return the query level
-			ULONG GetQueryLevel() const
-			{
-				return m_query_level;
-			}
-
-			// return the column name for the given attribute no
-			const TargetEntry *GetTargetEntry() const
-			{
-				return m_target_entry;
-			}
+		// return the column name for the given attribute no
+		const TargetEntry *
+		GetTargetEntry() const
+		{
+			return m_target_entry;
+		}
 	};
-}
+}  // namespace gpdxl
 
-#endif // GPDXL_CMappingElementColIdTE_H
+#endif  // GPDXL_CMappingElementColIdTE_H
 
 // EOF

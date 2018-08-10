@@ -74,359 +74,238 @@ namespace gpdxl
 	class CTranslatorDXLToScalar
 	{
 		// shorthand for functions for translating DXL nodes to GPDB expressions
-		typedef Expr * (CTranslatorDXLToScalar::*expr_func_ptr)(const CDXLNode *dxlnode, CMappingColIdVar *colid_var);
+		typedef Expr *(CTranslatorDXLToScalar::*expr_func_ptr)(const CDXLNode *dxlnode,
+															   CMappingColIdVar *colid_var);
 
-		private:
+	private:
+		// pair of DXL op id and translator function
+		struct STranslatorElem
+		{
+			Edxlopid eopid;
+			expr_func_ptr translate_func;
+		};
 
-			// pair of DXL op id and translator function
-			struct STranslatorElem
-			{
-				Edxlopid eopid;
-				expr_func_ptr translate_func;
-			};
+		// shorthand for functions for translating DXL nodes to GPDB expressions
+		typedef Const *(CTranslatorDXLToScalar::*const_func_ptr)(CDXLDatum *);
 
-			// shorthand for functions for translating DXL nodes to GPDB expressions
-			typedef Const * (CTranslatorDXLToScalar::*const_func_ptr)(CDXLDatum *);
+		// pair of DXL datum type and translator function
+		struct SDatumTranslatorElem
+		{
+			CDXLDatum::EdxldatumType edxldt;
+			const_func_ptr translate_func;
+		};
 
-			// pair of DXL datum type and translator function
-			struct SDatumTranslatorElem
-			{
-				CDXLDatum::EdxldatumType edxldt;
-				const_func_ptr translate_func;
-			};
+		IMemoryPool *m_mp;
 
-			IMemoryPool *m_mp;
+		// meta data accessor
+		CMDAccessor *m_md_accessor;
 
-			// meta data accessor
-			CMDAccessor *m_md_accessor;
+		// The parent plan needed when translating an initplan
+		Plan *m_plan;
 
-			// The parent plan needed when translating an initplan
-			Plan *m_plan;
+		// indicates whether a sublink was encountered during translation of the scalar subtree
+		BOOL m_has_subqueries;
 
-			// indicates whether a sublink was encountered during translation of the scalar subtree
-			BOOL m_has_subqueries;
-			
-			// number of segments
-			ULONG m_num_of_segments; 
+		// number of segments
+		ULONG m_num_of_segments;
 
-			// translate a CDXLScalarArrayComp into a GPDB ScalarArrayOpExpr
-			Expr *TranslateScalarArrayCompFromDXLNode
-				(
-				const CDXLNode *scalar_array_cmp_node,
-				CMappingColIdVar *colid_var
-				);
+		// translate a CDXLScalarArrayComp into a GPDB ScalarArrayOpExpr
+		Expr *TranslateScalarArrayCompFromDXLNode(const CDXLNode *scalar_array_cmp_node,
+												  CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarOpExprFromDXL
-				(
-				const CDXLNode *scalar_op_expr_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarOpExprFromDXL(const CDXLNode *scalar_op_expr_node,
+										   CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarDistinctCmpExprFromDXL
-				(
-				const CDXLNode *scalar_distinct_cmp_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarDistinctCmpExprFromDXL(const CDXLNode *scalar_distinct_cmp_node,
+													CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarBoolExprFromDXL
-				(
-				const CDXLNode *scalar_bool_expr_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarBoolExprFromDXL(const CDXLNode *scalar_bool_expr_node,
+											 CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarBoolTestExprFromDXL
-				(
-				const CDXLNode *scalar_boolean_test_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarBoolTestExprFromDXL(const CDXLNode *scalar_boolean_test_node,
+												 CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarCastExprFromDXL
-				(
-				const CDXLNode *scalar_relabel_type_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarCastExprFromDXL(const CDXLNode *scalar_relabel_type_node,
+											 CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarCoerceToDomainExprFromDXL
-				(
-				const CDXLNode *coerce_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarCoerceToDomainExprFromDXL(const CDXLNode *coerce_node,
+													   CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarCoerceViaIOExprFromDXL
-				(
-				const CDXLNode *coerce_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarCoerceViaIOExprFromDXL(const CDXLNode *coerce_node,
+													CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarArrayCoerceExprFromDXL
-				(
-				const CDXLNode *coerce_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarArrayCoerceExprFromDXL(const CDXLNode *coerce_node,
+													CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarNULLTestExprFromDXL
-				(
-				const CDXLNode *scalar_null_test_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarNULLTestExprFromDXL(const CDXLNode *scalar_null_test_node,
+												 CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarNULLIfExprFromDXL
-				(
-				const CDXLNode *scalar_null_if_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarNULLIfExprFromDXL(const CDXLNode *scalar_null_if_node,
+											   CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarIfStmtExprFromDXL
-				(
-				const CDXLNode *scalar_if_stmt_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarIfStmtExprFromDXL(const CDXLNode *scalar_if_stmt_node,
+											   CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarSwitchExprFromDXL
-				(
-				const CDXLNode *scalar_switch_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarSwitchExprFromDXL(const CDXLNode *scalar_switch_node,
+											   CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarCaseTestExprFromDXL
-				(
-				const CDXLNode *scalar_case_test_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarCaseTestExprFromDXL(const CDXLNode *scalar_case_test_node,
+												 CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarAggrefExprFromDXL
-				(
-				const CDXLNode *aggref_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarAggrefExprFromDXL(const CDXLNode *aggref_node,
+											   CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarWindowRefExprFromDXL
-				(
-				const CDXLNode *scalar_winref_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarWindowRefExprFromDXL(const CDXLNode *scalar_winref_node,
+												  CMappingColIdVar *colid_var);
 
-			Expr *TranslateScalarFuncExprFromDXL
-				(
-				const CDXLNode *scalar_func_expr_node,
-				CMappingColIdVar *colid_var
-				);
+		Expr *TranslateScalarFuncExprFromDXL(const CDXLNode *scalar_func_expr_node,
+											 CMappingColIdVar *colid_var);
 
-			// return a GPDB subplan from a DXL subplan
-			Expr *TranslateScalarSubplanExprFromDXL
-				(
-				const CDXLNode *scalar_sub_plan_node,
-				CMappingColIdVar *colid_var
-				);
-			
-			// build subplan node
-			SubPlan *TranslateSubplanFromChildPlan
-				(
-				Plan *plan_child,
-				SubLinkType slink,
-				CContextDXLToPlStmt *dxl_to_plstmt_ctxt
-				);
+		// return a GPDB subplan from a DXL subplan
+		Expr *TranslateScalarSubplanExprFromDXL(const CDXLNode *scalar_sub_plan_node,
+												CMappingColIdVar *colid_var);
 
-			// translate subplan test expression
-			Expr *TranslateSubplanTestExprFromDXL
-				(
-				CDXLNode *test_expr_node,
-				SubLinkType slink,
-				CMappingColIdVar *colid_var,
-				List **param_ids_list
-				);
-			
-			// translate subplan parameters
-			void TranslateSubplanParams
-        			(
-        			SubPlan *sub_plan,
-        			CDXLTranslateContext *dxl_translator_ctxt,
-        			const CDXLColRefArray *outer_refs,
-				CMappingColIdVar *colid_var
-       	 			);
+		// build subplan node
+		SubPlan *TranslateSubplanFromChildPlan(Plan *plan_child,
+											   SubLinkType slink,
+											   CContextDXLToPlStmt *dxl_to_plstmt_ctxt);
 
-			CHAR *GetSubplanAlias(ULONG plan_id);
+		// translate subplan test expression
+		Expr *TranslateSubplanTestExprFromDXL(CDXLNode *test_expr_node,
+											  SubLinkType slink,
+											  CMappingColIdVar *colid_var,
+											  List **param_ids_list);
 
-			Param *TranslateParamFromMapping
-				(
-				const CMappingElementColIdParamId *colid_to_param_id_map
-				);
+		// translate subplan parameters
+		void TranslateSubplanParams(SubPlan *sub_plan,
+									CDXLTranslateContext *dxl_translator_ctxt,
+									const CDXLColRefArray *outer_refs,
+									CMappingColIdVar *colid_var);
 
-			// translate a scalar coalesce
-			Expr *TranslateScalarCoalesceExprFromDXL
-				(
-				const CDXLNode *scalar_coalesce_node,
-				CMappingColIdVar *colid_var
-				);
+		CHAR *GetSubplanAlias(ULONG plan_id);
 
-			// translate a scalar minmax
-			Expr *TranslateScalarMinMaxExprFromDXL
-				(
-				const CDXLNode *scalar_min_max_node,
-				CMappingColIdVar *colid_var
-				);
+		Param *TranslateParamFromMapping(const CMappingElementColIdParamId *colid_to_param_id_map);
 
-			// translate a scconstval
-			Expr *TranslateScalarConstExprFromDXL
-				(
-				const CDXLNode *scalar_const_node,
-				CMappingColIdVar *colid_var
-				);
+		// translate a scalar coalesce
+		Expr *TranslateScalarCoalesceExprFromDXL(const CDXLNode *scalar_coalesce_node,
+												 CMappingColIdVar *colid_var);
 
-			// translate an array expression
-			Expr *TranslateArrayExprFromDXL
-				(
-				const CDXLNode *scalar_array_node,
-				CMappingColIdVar *colid_var
-				);
+		// translate a scalar minmax
+		Expr *TranslateScalarMinMaxExprFromDXL(const CDXLNode *scalar_min_max_node,
+											   CMappingColIdVar *colid_var);
 
-			// translate an arrayref expression
-			Expr *TranslateArrayRefExprFromDXL
-				(
-				const CDXLNode *scalar_array_ref_node,
-				CMappingColIdVar *colid_var
-				);
+		// translate a scconstval
+		Expr *TranslateScalarConstExprFromDXL(const CDXLNode *scalar_const_node,
+											  CMappingColIdVar *colid_var);
 
-			// translate an arrayref index list
-			List *TranslateArrayRefIndexListExprFromDXL
-				(
-				const CDXLNode *index_list_node,
-				CDXLScalarArrayRefIndexList::EIndexListBound index_list_bound,
-				CMappingColIdVar *colid_var
-				);
+		// translate an array expression
+		Expr *TranslateArrayExprFromDXL(const CDXLNode *scalar_array_node,
+										CMappingColIdVar *colid_var);
 
-			// translate a DML action expression
-			Expr *TranslateDMLActionExprFromDXL
-				(
-				const CDXLNode *dml_action_node,
-				CMappingColIdVar *colid_var
-				);
-			
-			
-			// translate children of DXL node, and add them to list
-			List *TranslateScalarChildren
-				(
-				List *list,
-				const CDXLNode *dxlnode,
-				CMappingColIdVar *colid_var
-				);
+		// translate an arrayref expression
+		Expr *TranslateArrayRefExprFromDXL(const CDXLNode *scalar_array_ref_node,
+										   CMappingColIdVar *colid_var);
 
-			// return the operator return type oid for the given func id.
-			OID GetFunctionReturnTypeOid(IMDId *mdid) const;
+		// translate an arrayref index list
+		List *TranslateArrayRefIndexListExprFromDXL(
+			const CDXLNode *index_list_node,
+			CDXLScalarArrayRefIndexList::EIndexListBound index_list_bound,
+			CMappingColIdVar *colid_var);
 
-			// translate dxldatum to GPDB Const
-			Const *ConvertDXLDatumToConstOid(CDXLDatum *datum_dxl);
-			Const *ConvertDXLDatumToConstInt2(CDXLDatum *datum_dxl);
-			Const *ConvertDXLDatumToConstInt4(CDXLDatum *datum_dxl);
-			Const *ConvertDXLDatumToConstInt8(CDXLDatum *datum_dxl);
-			Const *ConvertDXLDatumToConstBool(CDXLDatum *datum_dxl);
-			Const *TranslateConstGenericExprFromDXL(CDXLDatum *datum_dxl);
-			Expr *TranslateRelabelTypeOrFuncExprFromDXL
-				(
-				const CDXLScalarCast *scalar_cast,
-				Expr *pexprChild
-				);
-
-			// private copy ctor
-			CTranslatorDXLToScalar(const CTranslatorDXLToScalar&);
-
-		public:
-			struct STypeOidAndTypeModifier
-			{
-				OID oid_type;
-				INT type_modifier;
-			};
-
-			// ctor
-			CTranslatorDXLToScalar(IMemoryPool *mp, CMDAccessor *md_accessor, ULONG num_segments);
-
-			// translate DXL scalar operator node into an Expr expression
-			// This function is called during the translation of DXL->Query or DXL->Query
-			Expr *TranslateScalarExprFromDXL
-				(
-				const CDXLNode *scalar_op_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part default into an Expr
-			Expr *TranslatePartDefaultExprFromDXL
-				(
-				const CDXLNode *part_default_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part bound into an Expr
-			Expr *TranslatePartBoundExprFromDXL
-				(
-				const CDXLNode *part_bound_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part bound inclusion into an Expr
-			Expr *TranslatePartBoundInclusionExprFromDXL
-				(
-				const CDXLNode *part_bound_incl_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part bound openness into an Expr
-			Expr *TranslatePartBoundOpenExprFromDXL
-				(
-				const CDXLNode *part_bound_open_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part list values into an Expr
-			Expr *TranslatePartListValuesExprFromDXL
-				(
-				const CDXLNode *part_list_values_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar part list null test into an Expr
-			Expr *TranslatePartListNullTestExprFromDXL
-				(
-				const CDXLNode *part_list_null_test_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar ident into an Expr
-			Expr *TranslateScalarIdExprFromDXL
-				(
-				const CDXLNode *scalar_id_node,
-				CMappingColIdVar *colid_var
-				);
-
-			// translate a scalar comparison into an Expr
-			Expr *TranslateScalarCmpExprFromDXL
-				(
-				const CDXLNode *scalar_cmp_node,
-				CMappingColIdVar *colid_var
-				);
+		// translate a DML action expression
+		Expr *TranslateDMLActionExprFromDXL(const CDXLNode *dml_action_node,
+											CMappingColIdVar *colid_var);
 
 
-			// checks if the operator return a boolean result
-			static
-			BOOL HasBoolResult(CDXLNode *dxlnode, CMDAccessor *md_accessor);
+		// translate children of DXL node, and add them to list
+		List *TranslateScalarChildren(List *list,
+									  const CDXLNode *dxlnode,
+									  CMappingColIdVar *colid_var);
 
-			// check if the operator is a "true" bool constant
-			static
-			BOOL HasConstTrue(CDXLNode *dxlnode, CMDAccessor *md_accessor);
+		// return the operator return type oid for the given func id.
+		OID GetFunctionReturnTypeOid(IMDId *mdid) const;
 
-			// check if the operator is a NULL constant
-			static
-			BOOL HasConstNull(CDXLNode *dxlnode);
+		// translate dxldatum to GPDB Const
+		Const *ConvertDXLDatumToConstOid(CDXLDatum *datum_dxl);
+		Const *ConvertDXLDatumToConstInt2(CDXLDatum *datum_dxl);
+		Const *ConvertDXLDatumToConstInt4(CDXLDatum *datum_dxl);
+		Const *ConvertDXLDatumToConstInt8(CDXLDatum *datum_dxl);
+		Const *ConvertDXLDatumToConstBool(CDXLDatum *datum_dxl);
+		Const *TranslateConstGenericExprFromDXL(CDXLDatum *datum_dxl);
+		Expr *TranslateRelabelTypeOrFuncExprFromDXL(const CDXLScalarCast *scalar_cast,
+													Expr *pexprChild);
 
-			// are there subqueries in the tree
-			BOOL HasSubqueries() const
-			{
-				return m_has_subqueries;
-			}
-			
-			// translate a DXL datum into GPDB const expression
-			Expr *TranslateConstExprFromDXL(CDXLDatum *datum_dxl);
+		// private copy ctor
+		CTranslatorDXLToScalar(const CTranslatorDXLToScalar &);
+
+	public:
+		struct STypeOidAndTypeModifier
+		{
+			OID oid_type;
+			INT type_modifier;
+		};
+
+		// ctor
+		CTranslatorDXLToScalar(IMemoryPool *mp, CMDAccessor *md_accessor, ULONG num_segments);
+
+		// translate DXL scalar operator node into an Expr expression
+		// This function is called during the translation of DXL->Query or DXL->Query
+		Expr *TranslateScalarExprFromDXL(const CDXLNode *scalar_op_node,
+										 CMappingColIdVar *colid_var);
+
+		// translate a scalar part default into an Expr
+		Expr *TranslatePartDefaultExprFromDXL(const CDXLNode *part_default_node,
+											  CMappingColIdVar *colid_var);
+
+		// translate a scalar part bound into an Expr
+		Expr *TranslatePartBoundExprFromDXL(const CDXLNode *part_bound_node,
+											CMappingColIdVar *colid_var);
+
+		// translate a scalar part bound inclusion into an Expr
+		Expr *TranslatePartBoundInclusionExprFromDXL(const CDXLNode *part_bound_incl_node,
+													 CMappingColIdVar *colid_var);
+
+		// translate a scalar part bound openness into an Expr
+		Expr *TranslatePartBoundOpenExprFromDXL(const CDXLNode *part_bound_open_node,
+												CMappingColIdVar *colid_var);
+
+		// translate a scalar part list values into an Expr
+		Expr *TranslatePartListValuesExprFromDXL(const CDXLNode *part_list_values_node,
+												 CMappingColIdVar *colid_var);
+
+		// translate a scalar part list null test into an Expr
+		Expr *TranslatePartListNullTestExprFromDXL(const CDXLNode *part_list_null_test_node,
+												   CMappingColIdVar *colid_var);
+
+		// translate a scalar ident into an Expr
+		Expr *TranslateScalarIdExprFromDXL(const CDXLNode *scalar_id_node,
+										   CMappingColIdVar *colid_var);
+
+		// translate a scalar comparison into an Expr
+		Expr *TranslateScalarCmpExprFromDXL(const CDXLNode *scalar_cmp_node,
+											CMappingColIdVar *colid_var);
+
+
+		// checks if the operator return a boolean result
+		static BOOL HasBoolResult(CDXLNode *dxlnode, CMDAccessor *md_accessor);
+
+		// check if the operator is a "true" bool constant
+		static BOOL HasConstTrue(CDXLNode *dxlnode, CMDAccessor *md_accessor);
+
+		// check if the operator is a NULL constant
+		static BOOL HasConstNull(CDXLNode *dxlnode);
+
+		// are there subqueries in the tree
+		BOOL
+		HasSubqueries() const
+		{
+			return m_has_subqueries;
+		}
+
+		// translate a DXL datum into GPDB const expression
+		Expr *TranslateConstExprFromDXL(CDXLDatum *datum_dxl);
 	};
-}
-#endif // !GPDXL_CTranslatorDXLToScalar_H
+}  // namespace gpdxl
+#endif  // !GPDXL_CTranslatorDXLToScalar_H
 
 // EOF

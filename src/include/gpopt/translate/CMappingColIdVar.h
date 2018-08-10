@@ -45,25 +45,23 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CMappingColIdVar
 	{
-		protected:
-			// memory pool
-			IMemoryPool *m_mp;
+	protected:
+		// memory pool
+		IMemoryPool *m_mp;
 
-		public:
+	public:
+		// ctor/dtor
+		explicit CMappingColIdVar(IMemoryPool *);
 
-			// ctor/dtor
-			explicit
-			CMappingColIdVar(IMemoryPool *);
+		virtual ~CMappingColIdVar()
+		{
+		}
 
-			virtual
-			~CMappingColIdVar(){}
-
-			// translate DXL ScalarIdent node into GPDB Var node
-			virtual
-			Var *VarFromDXLNodeScId(const CDXLScalarIdent *) = 0;
+		// translate DXL ScalarIdent node into GPDB Var node
+		virtual Var *VarFromDXLNodeScId(const CDXLScalarIdent *) = 0;
 	};
-}
+}  // namespace gpdxl
 
-#endif //GPDXL_CMappingColIdVar_H
+#endif  //GPDXL_CMappingColIdVar_H
 
 // EOF

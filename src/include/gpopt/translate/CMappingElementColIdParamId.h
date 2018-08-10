@@ -35,53 +35,55 @@ namespace gpdxl
 	//---------------------------------------------------------------------------
 	class CMappingElementColIdParamId : public CRefCount
 	{
-		private:
+	private:
+		// column identifier that is used as the key
+		ULONG m_colid;
 
-			// column identifier that is used as the key
-			ULONG m_colid;
+		// param identifier
+		ULONG m_paramid;
 
-			// param identifier
-			ULONG m_paramid;
+		// param type
+		IMDId *m_mdid;
 
-			// param type
-			IMDId *m_mdid;
+		INT m_type_modifier;
 
-			INT m_type_modifier;
+	public:
+		// ctors and dtor
+		CMappingElementColIdParamId(ULONG colid, ULONG paramid, IMDId *mdid, INT type_modifier);
 
-		public:
+		virtual ~CMappingElementColIdParamId()
+		{
+		}
 
-			// ctors and dtor
-			CMappingElementColIdParamId(ULONG colid, ULONG paramid, IMDId *mdid, INT type_modifier);
+		// return the ColId
+		ULONG
+		GetColId() const
+		{
+			return m_colid;
+		}
 
-			virtual
-			~CMappingElementColIdParamId()
-			{}
+		// return the ParamId
+		ULONG
+		ParamId() const
+		{
+			return m_paramid;
+		}
 
-			// return the ColId
-			ULONG GetColId() const
-			{
-				return m_colid;
-			}
+		// return the type
+		IMDId *
+		MDIdType() const
+		{
+			return m_mdid;
+		}
 
-			// return the ParamId
-			ULONG ParamId() const
-			{
-				return m_paramid;
-			}
-
-			// return the type
-			IMDId *MDIdType() const
-			{
-				return m_mdid;
-			}
-
-			INT TypeModifier() const
-			{
-				return m_type_modifier;
-			}
+		INT
+		TypeModifier() const
+		{
+			return m_type_modifier;
+		}
 	};
-}
+}  // namespace gpdxl
 
-#endif // GPDXL_CMappingElementColIdParamId_H
+#endif  // GPDXL_CMappingElementColIdParamId_H
 
 // EOF

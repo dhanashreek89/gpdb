@@ -22,13 +22,12 @@
 #include "gpos/base.h"
 #include "gpos/common/CHashMap.h"
 
-#include "postgres.h"	// Index
+#include "postgres.h"  // Index
 
 #include "naucrates/dxl/gpdb_types.h"
 
 namespace gpdxl
 {
-
 	using namespace gpos;
 
 
@@ -44,51 +43,55 @@ namespace gpdxl
 	class CDXLTranslateContextBaseTable
 	{
 		// hash maps mapping ULONG -> INT
-		typedef CHashMap<ULONG, INT, gpos::HashValue<ULONG>, gpos::Equals<ULONG>,
-			CleanupDelete<ULONG>, CleanupDelete<INT> > UlongToIntMap;
+		typedef CHashMap<ULONG,
+						 INT,
+						 gpos::HashValue<ULONG>,
+						 gpos::Equals<ULONG>,
+						 CleanupDelete<ULONG>,
+						 CleanupDelete<INT> >
+			UlongToIntMap;
 
 
-		private:
-			IMemoryPool *m_mp;
+	private:
+		IMemoryPool *m_mp;
 
-			// oid of the base table
-			OID m_oid;
+		// oid of the base table
+		OID m_oid;
 
-			// index of the relation in the rtable
-			Index m_rel_index;
+		// index of the relation in the rtable
+		Index m_rel_index;
 
-			// maps a colid of a column to the attribute number of that column in the schema of the underlying relation
-			UlongToIntMap *m_colid_to_attno_map;
+		// maps a colid of a column to the attribute number of that column in the schema of the underlying relation
+		UlongToIntMap *m_colid_to_attno_map;
 
-			// private copy ctor
-			CDXLTranslateContextBaseTable(const CDXLTranslateContextBaseTable&);
+		// private copy ctor
+		CDXLTranslateContextBaseTable(const CDXLTranslateContextBaseTable &);
 
-		public:
-			// ctor/dtor
-			explicit CDXLTranslateContextBaseTable(IMemoryPool *mp);
+	public:
+		// ctor/dtor
+		explicit CDXLTranslateContextBaseTable(IMemoryPool *mp);
 
 
-			~CDXLTranslateContextBaseTable();
+		~CDXLTranslateContextBaseTable();
 
-			// accessors
-			OID GetOid() const;
+		// accessors
+		OID GetOid() const;
 
-			Index GetRelIndex() const;
+		Index GetRelIndex() const;
 
-			// return the index of the column in the base relation for the given DXL ColId
-			INT GetAttnoForColId(ULONG dxl_colid) const;
+		// return the index of the column in the base relation for the given DXL ColId
+		INT GetAttnoForColId(ULONG dxl_colid) const;
 
-			// setters
-			void SetOID(OID oid);
+		// setters
+		void SetOID(OID oid);
 
-			void SetRelIndex(Index rel_index);
+		void SetRelIndex(Index rel_index);
 
-			// store the mapping of the given DXL column id and index in the base relation schema
-			BOOL InsertMapping(ULONG dxl_colid, INT att_no);
-
+		// store the mapping of the given DXL column id and index in the base relation schema
+		BOOL InsertMapping(ULONG dxl_colid, INT att_no);
 	};
-}
+}  // namespace gpdxl
 
-#endif // !GPDXL_CDXLTranslateContextBaseTable_H
+#endif  // !GPDXL_CDXLTranslateContextBaseTable_H
 
 // EOF
