@@ -191,7 +191,7 @@ function _main() {
   # the source tree and hence needs to be copied over.
   rsync -au gpaddon_src/ ${GPDB_SRC_PATH}/gpAux/${ADDON_DIR}
   build_gpdb "${BLD_TARGET_OPTION[@]}"
-  git_info
+  # git_info
   build_gppkg
   if [ "${TARGET_OS}" != "win32" ] ; then
       # Don't unit test when cross compiling. Tests don't build because they
